@@ -56,6 +56,7 @@ class AgentLoop:
     async def set_goal(self, goal: str) -> None:
         self.goal = goal.strip()
         self.current_action = None
+        self._next_plan = ""
         self._history = []
         self._mission = MissionState.from_goal(self.goal)
         self._mission_id = self.memory.create_mission(self.goal, self._mission.to_dict())
@@ -377,6 +378,8 @@ class AgentLoop:
         if self._goal_requires_followup_work(goal):
             return False
         tool = str(action.get("tool", ""))
+        if tool == "write_file" and any(token in goal for token in ("fichier", ".txt", ".md", "sauvegarde", "enregistre", "crée", "cree")):
+            return True
         if tool == "search" and any(token in goal for token in ("cherche", "recherche", "search", "google")):
             return True
         if tool == "open_url":

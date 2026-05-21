@@ -57,6 +57,10 @@ class ActionExecutor:
     @staticmethod
     def _filter_parameters(func: ToolCallable, parameters: dict[str, Any]) -> dict[str, Any]:
         signature = inspect.signature(func)
+        if isinstance(parameters.get("parameters"), dict):
+            direct_matches = set(parameters) & set(signature.parameters)
+            if not direct_matches:
+                parameters = parameters["parameters"]
         if any(param.kind == inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()):
             return parameters
         allowed = {

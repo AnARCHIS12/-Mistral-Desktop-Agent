@@ -76,12 +76,8 @@ class MistralPlanner:
         tool_calls = message.get("tool_calls") or []
         if tool_calls:
             call = tool_calls[0]["function"]
-            return {
-                "tool": call["name"],
-                "parameters": json.loads(call.get("arguments") or "{}"),
-                "reason": "Action selectionnee par tool calling Mistral",
-                "status": "continue",
-            }
+            arguments = json.loads(call.get("arguments") or "{}")
+            return self._normalize_tool_call(call["name"], arguments)
 
         content = message.get("content") or "{}"
         try:
@@ -95,6 +91,26 @@ class MistralPlanner:
         action.setdefault("reason", "")
         action.setdefault("status", "continue")
         return action
+
+    @staticmethod
+    def _normalize_tool_call(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(arguments, dict):
+            arguments = {}
+
+        nested_parameters = arguments.get("parameters")
+        if isinstance(nested_parameters, dict) and arguments.get("tool") in {None, tool_name}:
+            parameters = nested_parameters
+            reason = str(arguments.get("reason") or "Action selectionnee par tool calling Mistral")
+        else:
+            parameters = arguments
+            reason = "Action selectionnee par tool calling Mistral"
+
+        return {
+            "tool": tool_name,
+            "parameters": parameters,
+            "reason": reason,
+            "status": "continue",
+        }
 
     def stats(self) -> dict[str, Any]:
         return {"calls": self.calls, "rate_limits": self.rate_limits, "usage": self.usage}
