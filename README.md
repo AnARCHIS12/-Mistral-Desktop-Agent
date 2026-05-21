@@ -188,6 +188,7 @@ Par defaut, l'agent peut acceder a tout l'ordinateur local selon les permissions
 FILE_ACCESS_MODE=full
 ALLOWED_FILE_ROOTS=
 TERMINAL_WORKDIR=/home/ton_user
+SEARCH_ENGINE=duckduckgo
 ```
 
 Cela veut dire:
@@ -210,3 +211,20 @@ ALLOWED_FILE_ROOTS=/home/ton_user:/tmp
 ```
 
 Les commandes terminal destructrices courantes restent bloquees, les erreurs sont limitees a 3 retries, les actions repetees declenchent un arret, et la boucle s'arrete apres `MAX_STEPS`.
+
+## CAPTCHA
+
+Par defaut, les recherches passent par DuckDuckGo pour eviter les CAPTCHA Google:
+
+```env
+SEARCH_ENGINE=duckduckgo
+```
+
+Autres valeurs possibles:
+
+```env
+SEARCH_ENGINE=brave
+SEARCH_ENGINE=google
+```
+
+Google peut afficher des CAPTCHA avec Playwright. Garde `duckduckgo` si tu veux un agent plus fluide.

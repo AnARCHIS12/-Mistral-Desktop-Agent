@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     file_access_mode: str = Field(default="full", alias="FILE_ACCESS_MODE")
     allowed_file_roots: str = Field(default="", alias="ALLOWED_FILE_ROOTS")
     terminal_workdir: Path = Field(default=Path.home(), alias="TERMINAL_WORKDIR")
+    search_engine: str = Field(default="duckduckgo", alias="SEARCH_ENGINE")
 
     max_steps: int = Field(default=50, alias="MAX_STEPS")
     max_retries: int = Field(default=3, alias="MAX_RETRIES")

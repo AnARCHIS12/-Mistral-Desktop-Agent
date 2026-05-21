@@ -212,6 +212,6 @@ class AgentLoop:
         if tool == "open_url":
             url = str((result.get("result") or {}).get("url", "")).lower()
             return any(token in goal for token in ("cherche", "recherche", "search", "google")) and (
-                "search" in url or "?q=" in url or "&q=" in url
+                "search" in url or "duckduckgo.com" in url or "?q=" in url or "&q=" in url
             )
         return False

@@ -21,7 +21,18 @@ class BrowserTools:
         return {"url": page.url, "title": await page.title()}
 
     async def search(self, query: str) -> dict[str, Any]:
-        return await self.open_url(f"https://www.google.com/search?q={quote_plus(query)}")
+        engine = self.settings.search_engine.lower().strip()
+        encoded = quote_plus(query)
+        if engine == "google":
+            url = f"https://www.google.com/search?q={encoded}"
+        elif engine == "brave":
+            url = f"https://search.brave.com/search?q={encoded}"
+        else:
+            url = f"https://duckduckgo.com/?q={encoded}"
+        result = await self.open_url(url)
+        result["engine"] = engine if engine in {"google", "brave"} else "duckduckgo"
+        result["query"] = query
+        return result
 
     async def close(self) -> None:
         if self._browser:

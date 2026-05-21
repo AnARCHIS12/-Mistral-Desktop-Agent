@@ -22,7 +22,8 @@ Regles:
 - Ne propose jamais de commande destructive.
 - Ne retourne aucun markdown, aucun commentaire hors JSON.
 - Choisis des actions petites, observables et reversibles.
-- Pour "ouvre Firefox et cherche X", prefere une seule action search({"query": "X"}) ou open_url vers une recherche, puis termine.
+- Pour "ouvre Firefox et cherche X", prefere une seule action search({"query": "X"}), puis termine.
+- Evite Google sauf demande explicite, car il affiche souvent des CAPTCHA avec l'automatisation.
 - N'utilise pas wmctrl, xdotool ou des commandes de focus fenetre sauf si l'objectif le demande explicitement.
 """.strip()
 
