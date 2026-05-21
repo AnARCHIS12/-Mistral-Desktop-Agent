@@ -95,7 +95,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$p=Read-Host 'Port web [48723]'; if([string]::IsNullOrWhiteSpace($p)){$p='48723'};" ^
   "$e=if([string]::IsNullOrWhiteSpace($t)){'false'}else{'true'};" ^
   "$home=[Environment]::GetFolderPath('UserProfile');" ^
-  "$lines=@('MISTRAL_API_KEY='+$m,'MISTRAL_MODEL=mistral-large-latest','TELEGRAM_BOT_TOKEN='+$t,'ENABLE_TELEGRAM='+$e,'HOST=0.0.0.0','PORT='+$p,'DATABASE_PATH=data/agent_memory.sqlite3','SCREENSHOT_PATH=data/latest_screenshot.png','FILE_ACCESS_MODE=full','ALLOWED_FILE_ROOTS=','TERMINAL_WORKDIR='+$home,'MAX_STEPS=50','MAX_RETRIES=3','LOOP_DELAY_SECONDS=1.0','MAX_REPEATED_ACTIONS=3','TERMINAL_TIMEOUT_SECONDS=30','BROWSER_HEADLESS=false');" ^
+  "$lines=@('MISTRAL_API_KEY='+$m,'MISTRAL_MODEL=mistral-large-latest','MISTRAL_MIN_SECONDS_BETWEEN_CALLS=8','MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=20','TELEGRAM_BOT_TOKEN='+$t,'ENABLE_TELEGRAM='+$e,'HOST=0.0.0.0','PORT='+$p,'DATABASE_PATH=data/agent_memory.sqlite3','SCREENSHOT_PATH=data/latest_screenshot.png','FILE_ACCESS_MODE=full','ALLOWED_FILE_ROOTS=','TERMINAL_WORKDIR='+$home,'MAX_STEPS=50','MAX_RETRIES=3','LOOP_DELAY_SECONDS=1.0','MAX_REPEATED_ACTIONS=3','TERMINAL_TIMEOUT_SECONDS=30','BROWSER_HEADLESS=false');" ^
   "Set-Content -Path '.env' -Value $lines -Encoding UTF8"
 exit /b %errorlevel%
 

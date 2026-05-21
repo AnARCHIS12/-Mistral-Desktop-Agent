@@ -53,6 +53,12 @@ Linux:
 bash launch.sh
 ```
 
+L'option `1. Installer ou mettre a jour` installe aussi l'OCR par defaut quand c'est possible. Sur Fedora, le script lance:
+
+```bash
+sudo dnf install -y tesseract
+```
+
 Pour creer un raccourci dans le menu des applications:
 
 ```bash

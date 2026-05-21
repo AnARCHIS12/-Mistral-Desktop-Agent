@@ -9,6 +9,7 @@ PORT="${PORT:-48723}"
 HOST="${HOST:-0.0.0.0}"
 MISTRAL_MODEL="${MISTRAL_MODEL:-mistral-large-latest}"
 INSTALL_PLAYWRIGHT=1
+INSTALL_SYSTEM_PACKAGES=1
 WRITE_ENV=1
 RUN_SERVER=0
 ASSUME_YES=0
@@ -30,6 +31,7 @@ Options:
   -y, --yes              Mode non interactif, accepte les valeurs par defaut
   --no-env               Ne pas creer/modifier .env
   --skip-playwright      Ne pas installer Chromium Playwright
+  --skip-system-packages Ne pas installer les paquets systeme comme Tesseract OCR
   --run                  Lancer le serveur apres installation
   --host <host>          Host FastAPI (defaut: $HOST)
   --port <port>          Port FastAPI (defaut: $PORT)
@@ -131,6 +133,10 @@ parse_args() {
         INSTALL_PLAYWRIGHT=0
         shift
         ;;
+      --skip-system-packages)
+        INSTALL_SYSTEM_PACKAGES=0
+        shift
+        ;;
       --run)
         RUN_SERVER=1
         shift
@@ -193,6 +199,8 @@ create_env_file() {
   cat > "$env_file" <<EOF
 MISTRAL_API_KEY=$mistral_key
 MISTRAL_MODEL=$MISTRAL_MODEL
+MISTRAL_MIN_SECONDS_BETWEEN_CALLS=8
+MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=20
 TELEGRAM_BOT_TOKEN=$telegram_token
 ENABLE_TELEGRAM=$enable_telegram
 HOST=$HOST
@@ -210,6 +218,66 @@ TERMINAL_TIMEOUT_SECONDS=30
 BROWSER_HEADLESS=false
 EOF
   log ".env configure"
+}
+
+sudo_prefix() {
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    return 0
+  fi
+  if command -v sudo >/dev/null 2>&1; then
+    printf '%s' "sudo"
+    return 0
+  fi
+  return 1
+}
+
+install_tesseract() {
+  if command -v tesseract >/dev/null 2>&1; then
+    log "Tesseract detecte: $(tesseract --version | head -n 1)"
+    return 0
+  fi
+
+  if [[ "$INSTALL_SYSTEM_PACKAGES" -eq 0 ]]; then
+    warn "Installation systeme ignoree. Tesseract OCR n'est pas installe."
+    return 0
+  fi
+
+  if ! confirm "Installer Tesseract OCR maintenant ?"; then
+    warn "Tesseract OCR non installe. L'OCR restera indisponible."
+    return 0
+  fi
+
+  local sudo_cmd=""
+  sudo_cmd="$(sudo_prefix || true)"
+  if [[ "${EUID:-$(id -u)}" -ne 0 && -z "$sudo_cmd" ]]; then
+    warn "sudo est requis pour installer Tesseract automatiquement."
+    warn "Commande manuelle Fedora/RHEL: sudo dnf install -y tesseract"
+    return 0
+  fi
+
+  if command -v dnf >/dev/null 2>&1; then
+    log "Installation OCR: ${sudo_cmd:+$sudo_cmd }dnf install -y tesseract"
+    ${sudo_cmd:+$sudo_cmd} dnf install -y tesseract
+  elif command -v apt-get >/dev/null 2>&1; then
+    log "Installation OCR: ${sudo_cmd:+$sudo_cmd }apt-get install -y tesseract-ocr"
+    ${sudo_cmd:+$sudo_cmd} apt-get update
+    ${sudo_cmd:+$sudo_cmd} apt-get install -y tesseract-ocr
+  elif command -v pacman >/dev/null 2>&1; then
+    log "Installation OCR: ${sudo_cmd:+$sudo_cmd }pacman -S --noconfirm tesseract"
+    ${sudo_cmd:+$sudo_cmd} pacman -S --noconfirm tesseract
+  elif command -v zypper >/dev/null 2>&1; then
+    log "Installation OCR: ${sudo_cmd:+$sudo_cmd }zypper install -y tesseract-ocr"
+    ${sudo_cmd:+$sudo_cmd} zypper install -y tesseract-ocr
+  else
+    warn "Gestionnaire de paquets non reconnu. Installe Tesseract manuellement."
+    return 0
+  fi
+
+  if command -v tesseract >/dev/null 2>&1; then
+    log "Tesseract installe: $(tesseract --version | head -n 1)"
+  else
+    warn "Tesseract ne semble toujours pas disponible dans PATH."
+  fi
 }
 
 check_system_tools() {
@@ -276,6 +344,7 @@ main() {
   mkdir -p "$PROJECT_DIR/data"
   install_python_deps "$python"
   install_playwright
+  install_tesseract
   create_env_file
   check_system_tools
   verify_app

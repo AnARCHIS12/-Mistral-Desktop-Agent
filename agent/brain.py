@@ -164,6 +164,10 @@ AVAILABLE_TOOLS: list[dict[str, Any]] = [
     },
 ]
 
+PLANNER_TOOLS: list[dict[str, Any]] = [
+    tool for tool in AVAILABLE_TOOLS if tool["function"]["name"] not in {"screenshot", "ocr"}
+]
+
 
 def build_prompt(goal: str, screen_text: str, memory: list[dict[str, Any]], history: list[dict[str, Any]]) -> str:
     return json.dumps(
@@ -172,7 +176,8 @@ def build_prompt(goal: str, screen_text: str, memory: list[dict[str, Any]], hist
             "etat_ecran_ocr": screen_text[-6000:],
             "memoire_recente": memory[-10:],
             "historique_actions": history[-10:],
-            "outils_disponibles": [tool["function"]["name"] for tool in AVAILABLE_TOOLS],
+            "outils_disponibles": [tool["function"]["name"] for tool in PLANNER_TOOLS],
+            "observation": "La boucle agent capture deja l'ecran et l'OCR avant chaque appel. Ne demande pas screenshot ni ocr comme action.",
             "consigne": "Retourne une seule action JSON conforme au schema strict.",
         },
         ensure_ascii=True,

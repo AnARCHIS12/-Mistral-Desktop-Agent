@@ -19,6 +19,8 @@ class Settings(BaseSettings):
         default="https://api.mistral.ai/v1/chat/completions",
         alias="MISTRAL_API_URL",
     )
+    mistral_min_seconds_between_calls: float = Field(default=8.0, alias="MISTRAL_MIN_SECONDS_BETWEEN_CALLS")
+    mistral_rate_limit_backoff_seconds: float = Field(default=20.0, alias="MISTRAL_RATE_LIMIT_BACKOFF_SECONDS")
 
     telegram_bot_token: Optional[str] = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
     enable_telegram: bool = Field(default=True, alias="ENABLE_TELEGRAM")

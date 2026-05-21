@@ -35,8 +35,16 @@ class VisionTools:
         if not path.exists():
             self.screenshot()
         image = Image.open(path)
-        text = pytesseract.image_to_string(image)
-        return {"path": str(path), "text": text}
+        try:
+            text = pytesseract.image_to_string(image)
+        except pytesseract.pytesseract.TesseractNotFoundError:
+            return {
+                "path": str(path),
+                "text": "",
+                "ok": False,
+                "error": "Tesseract OCR is not installed. Install tesseract-ocr to enable OCR.",
+            }
+        return {"path": str(path), "text": text, "ok": True}
 
     @staticmethod
     def _image_b64(path: Path) -> str:

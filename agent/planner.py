@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import time
 from typing import Any
 
 import httpx
 
-from agent.brain import AVAILABLE_TOOLS, SYSTEM_PROMPT, build_prompt
+from agent.brain import PLANNER_TOOLS, SYSTEM_PROMPT, build_prompt
 from config import Settings
 
 
@@ -13,9 +15,16 @@ class PlannerError(RuntimeError):
     pass
 
 
+class MistralRateLimitError(PlannerError):
+    def __init__(self, retry_after_seconds: float, message: str) -> None:
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
+
+
 class MistralPlanner:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self._last_call_at = 0.0
 
     async def next_action(
         self,
@@ -34,7 +43,7 @@ class MistralPlanner:
                 {"role": "user", "content": build_prompt(goal, screen_text, memory, history)},
             ],
             "response_format": {"type": "json_object"},
-            "tools": AVAILABLE_TOOLS,
+            "tools": PLANNER_TOOLS,
             "tool_choice": "auto",
             "parallel_tool_calls": False,
             "temperature": 0.1,
@@ -44,7 +53,15 @@ class MistralPlanner:
             "Content-Type": "application/json",
         }
         async with httpx.AsyncClient(timeout=60) as client:
+            await self._wait_for_rate_limit_slot()
             response = await client.post(self.settings.mistral_api_url, headers=headers, json=payload)
+            self._last_call_at = time.monotonic()
+            if response.status_code == 429:
+                retry_after = self._retry_after_seconds(response)
+                raise MistralRateLimitError(
+                    retry_after,
+                    f"Mistral rate limit reached. Pausing for {retry_after:.0f}s before retry.",
+                )
             response.raise_for_status()
             data = response.json()
 
@@ -71,3 +88,18 @@ class MistralPlanner:
         action.setdefault("reason", "")
         action.setdefault("status", "continue")
         return action
+
+    async def _wait_for_rate_limit_slot(self) -> None:
+        elapsed = time.monotonic() - self._last_call_at
+        wait_seconds = self.settings.mistral_min_seconds_between_calls - elapsed
+        if wait_seconds > 0:
+            await asyncio.sleep(wait_seconds)
+
+    def _retry_after_seconds(self, response: httpx.Response) -> float:
+        header = response.headers.get("retry-after")
+        if header:
+            try:
+                return max(float(header), self.settings.mistral_rate_limit_backoff_seconds)
+            except ValueError:
+                pass
+        return self.settings.mistral_rate_limit_backoff_seconds

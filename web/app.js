@@ -79,6 +79,7 @@ function connectWebSocket() {
       screenPlaceholder.hidden = true;
     }
     if (payload.action) actionEl.textContent = JSON.stringify(payload.action, null, 2);
+    if (payload.ocr_error) addLog(`OCR: ${payload.ocr_error}`);
     if (data.type === "result") addLog(`${payload.action?.tool || "tool"} -> ${payload.result?.ok ? "ok" : "error"}`);
     if (data.type === "error") addLog(`Erreur: ${payload.message || payload.error || JSON.stringify(payload)}`);
     if (data.type === "done") addLog("Objectif termine");

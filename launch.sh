@@ -45,6 +45,8 @@ configure_env() {
   cat > .env <<EOF
 MISTRAL_API_KEY=$mistral_key
 MISTRAL_MODEL=mistral-large-latest
+MISTRAL_MIN_SECONDS_BETWEEN_CALLS=8
+MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=20
 TELEGRAM_BOT_TOKEN=$telegram_token
 ENABLE_TELEGRAM=$enable_telegram
 HOST=0.0.0.0
@@ -90,6 +92,19 @@ open_browser_later() {
   ) &
 }
 
+repair_display_env() {
+  if [[ "$(uname -s)" != "Linux" ]]; then
+    return 0
+  fi
+  if [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]]; then
+    return 0
+  fi
+  if [[ -S /tmp/.X11-unix/X0 ]]; then
+    export DISPLAY=:0
+    log "Affichage X11 detecte automatiquement: DISPLAY=:0"
+  fi
+}
+
 launch_app() {
   if [[ ! -x .venv/bin/python ]]; then
     warn "Venv absent. Installation maintenant."
@@ -97,6 +112,20 @@ launch_app() {
   fi
   if [[ ! -f .env ]]; then
     configure_env
+  fi
+
+  repair_display_env
+
+  if [[ "$(uname -s)" = "Linux" && -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]; then
+    warn "Aucun affichage graphique detecte. Screenshot, OCR, souris et clavier ne fonctionneront pas."
+    warn "Lance ce menu depuis ta session bureau, pas depuis un service SSH/headless."
+  fi
+
+  if ! command -v tesseract >/dev/null 2>&1; then
+    warn "Tesseract OCR manque. Lance l'option 1 pour l'installer automatiquement."
+    if command -v dnf >/dev/null 2>&1; then
+      warn "Commande directe: sudo dnf install -y tesseract"
+    fi
   fi
 
   local port

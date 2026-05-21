@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from agent.executor import ActionExecutor
-from agent.planner import MistralPlanner, PlannerError
+from agent.planner import MistralPlanner, MistralRateLimitError, PlannerError
 from api.websocket import WebSocketHub
 from config import Settings
 from integrations.telegram_bot import TelegramIntegration
@@ -82,14 +82,24 @@ class AgentLoop:
                     break
 
                 self.progress = f"step {step}/{self.settings.max_steps}: observation"
-                screenshot = await asyncio.to_thread(self.vision.screenshot)
+                try:
+                    screenshot = await asyncio.to_thread(self.vision.screenshot)
+                except Exception as exc:
+                    self.progress = "error: screenshot failed"
+                    self.memory.add_error("vision.screenshot", str(exc))
+                    await self._publish("error", {"message": f"Screenshot failed: {exc}"})
+                    break
+
                 screen_text = await asyncio.to_thread(self.vision.ocr)
+                if screen_text.get("error"):
+                    self.memory.add_error("vision.ocr", screen_text["error"])
                 await self._publish(
                     "observation",
                     {
                         "progress": self.progress,
                         "screenshot": screenshot.get("base64"),
                         "ocr": screen_text.get("text", "")[-2000:],
+                        "ocr_error": screen_text.get("error"),
                     },
                 )
 
@@ -102,6 +112,17 @@ class AgentLoop:
                         memory,
                         self._history,
                     )
+                except MistralRateLimitError as exc:
+                    result = {"ok": False, "error": str(exc), "retry_after_seconds": exc.retry_after_seconds}
+                    self.progress = f"rate limited: waiting {exc.retry_after_seconds:.0f}s"
+                    self.memory.add_error("planner.rate_limit", str(exc))
+                    await self._publish("error", result)
+                    retries["planner:rate_limit"] += 1
+                    if retries["planner:rate_limit"] >= self.settings.max_retries:
+                        self.progress = "stopped: Mistral rate limit"
+                        break
+                    await asyncio.sleep(exc.retry_after_seconds)
+                    continue
                 except (PlannerError, Exception) as exc:
                     result = {"ok": False, "error": str(exc)}
                     self.memory.add_error("planner", str(exc))
@@ -152,6 +173,11 @@ class AgentLoop:
                 await asyncio.sleep(self.settings.loop_delay_seconds)
             else:
                 self.progress = "stopped: max steps reached"
+        except Exception as exc:
+            self.running = False
+            self.progress = "error"
+            self.memory.add_error("agent", str(exc))
+            await self._publish("error", {"message": str(exc)})
         finally:
             self.running = False
             await self._publish("status", self.status())
