@@ -207,6 +207,7 @@ HOST=$HOST
 PORT=$PORT
 DATABASE_PATH=data/agent_memory.sqlite3
 SCREENSHOT_PATH=data/latest_screenshot.png
+SCREENSHOT_BACKEND=auto
 FILE_ACCESS_MODE=full
 ALLOWED_FILE_ROOTS=
 TERMINAL_WORKDIR=$HOME
@@ -281,6 +282,47 @@ install_tesseract() {
   fi
 }
 
+install_screenshot_tools() {
+  if command -v gnome-screenshot >/dev/null 2>&1 || command -v grim >/dev/null 2>&1 || command -v spectacle >/dev/null 2>&1 || command -v scrot >/dev/null 2>&1; then
+    log "Outil de capture detecte"
+    return 0
+  fi
+
+  if [[ "$INSTALL_SYSTEM_PACKAGES" -eq 0 ]]; then
+    warn "Installation systeme ignoree. Aucun outil de capture Wayland/X11 detecte."
+    return 0
+  fi
+
+  if ! confirm "Installer les outils de capture ecran maintenant ?"; then
+    warn "Aucun outil de capture supplementaire installe."
+    return 0
+  fi
+
+  local sudo_cmd=""
+  sudo_cmd="$(sudo_prefix || true)"
+  if [[ "${EUID:-$(id -u)}" -ne 0 && -z "$sudo_cmd" ]]; then
+    warn "sudo est requis pour installer les outils de capture automatiquement."
+    return 0
+  fi
+
+  if command -v dnf >/dev/null 2>&1; then
+    log "Installation capture: ${sudo_cmd:+$sudo_cmd }dnf install -y gnome-screenshot grim scrot"
+    ${sudo_cmd:+$sudo_cmd} dnf install -y gnome-screenshot grim scrot
+  elif command -v apt-get >/dev/null 2>&1; then
+    log "Installation capture: ${sudo_cmd:+$sudo_cmd }apt-get install -y gnome-screenshot grim scrot"
+    ${sudo_cmd:+$sudo_cmd} apt-get update
+    ${sudo_cmd:+$sudo_cmd} apt-get install -y gnome-screenshot grim scrot
+  elif command -v pacman >/dev/null 2>&1; then
+    log "Installation capture: ${sudo_cmd:+$sudo_cmd }pacman -S --noconfirm gnome-screenshot grim scrot"
+    ${sudo_cmd:+$sudo_cmd} pacman -S --noconfirm gnome-screenshot grim scrot
+  elif command -v zypper >/dev/null 2>&1; then
+    log "Installation capture: ${sudo_cmd:+$sudo_cmd }zypper install -y gnome-screenshot grim scrot"
+    ${sudo_cmd:+$sudo_cmd} zypper install -y gnome-screenshot grim scrot
+  else
+    warn "Gestionnaire de paquets non reconnu. Installe gnome-screenshot ou grim manuellement."
+  fi
+}
+
 check_system_tools() {
   if ! command -v tesseract >/dev/null 2>&1; then
     warn "Tesseract OCR n'est pas installe. OCR indisponible tant que tesseract-ocr manque."
@@ -346,6 +388,7 @@ main() {
   install_python_deps "$python"
   install_playwright
   install_tesseract
+  install_screenshot_tools
   create_env_file
   check_system_tools
   verify_app

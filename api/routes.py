@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
 from api.websocket import websocket_endpoint
 
@@ -42,3 +43,11 @@ async def status(request: Request) -> dict:
 async def logs(request: Request, limit: int = 100) -> dict:
     memory = request.app.state.memory
     return {"logs": memory.list_logs(limit=max(1, min(limit, 500)))}
+
+
+@router.get("/screenshot")
+async def screenshot(request: Request) -> FileResponse:
+    path = request.app.state.settings.screenshot_path
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="No screenshot available")
+    return FileResponse(path, media_type="image/png")

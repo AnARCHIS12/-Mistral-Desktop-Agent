@@ -102,6 +102,7 @@ class AgentLoop:
                     {
                         "progress": self.progress,
                         "screenshot": screenshot.get("base64"),
+                        "screenshot_backend": screenshot.get("backend"),
                         "ocr": screen_text.get("text", "")[-2000:],
                         "ocr_error": screen_text.get("error"),
                     },

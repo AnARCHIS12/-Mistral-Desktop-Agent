@@ -16,6 +16,12 @@ function addLog(message) {
   logsEl.prepend(row);
 }
 
+function renderScreenshot(src) {
+  screenEl.src = src;
+  screenEl.hidden = false;
+  screenPlaceholder.hidden = true;
+}
+
 async function post(path, body) {
   const response = await fetch(path, {
     method: "POST",
@@ -31,6 +37,12 @@ async function post(path, body) {
 async function refreshStatus() {
   const status = await fetch("/status").then((response) => response.json());
   renderStatus(status);
+}
+
+async function refreshScreenshot() {
+  const response = await fetch(`/screenshot?t=${Date.now()}`);
+  if (!response.ok) return;
+  renderScreenshot(response.url);
 }
 
 function renderStatus(status) {
@@ -97,10 +109,9 @@ function connectWebSocket() {
     const payload = data.payload || {};
     if (payload.progress) progressEl.textContent = payload.progress;
     if (payload.screenshot) {
-      screenEl.src = payload.screenshot;
-      screenEl.hidden = false;
-      screenPlaceholder.hidden = true;
+      renderScreenshot(payload.screenshot);
     }
+    if (payload.screenshot_backend) addLog(`Capture: ${payload.screenshot_backend}`);
     if (payload.action) actionEl.textContent = JSON.stringify(payload.action, null, 2);
     if (payload.ocr_error) addLog(`OCR: ${payload.ocr_error}`);
     if (data.type === "result") addLog(`${payload.action?.tool || "tool"} -> ${payload.result?.ok ? "ok" : "error"}`);
@@ -115,4 +126,5 @@ function connectWebSocket() {
 }
 
 refreshStatus().catch((error) => addLog(error.message));
+refreshScreenshot().catch(() => {});
 connectWebSocket();

@@ -141,6 +141,7 @@ MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20
 MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60
 TELEGRAM_BOT_TOKEN=ton_token_telegram
 ENABLE_TELEGRAM=true
+SCREENSHOT_BACKEND=auto
 ```
 
 `TELEGRAM_BOT_TOKEN` est optionnel. Sans token, le serveur web et l'API fonctionnent normalement.
@@ -189,6 +190,7 @@ FILE_ACCESS_MODE=full
 ALLOWED_FILE_ROOTS=
 TERMINAL_WORKDIR=/home/ton_user
 SEARCH_ENGINE=duckduckgo
+SCREENSHOT_BACKEND=auto
 ```
 
 Cela veut dire:
@@ -197,6 +199,14 @@ Cela veut dire:
 - chemins relatifs resolus depuis `TERMINAL_WORKDIR`
 - commandes terminal lancees depuis `TERMINAL_WORKDIR`
 - acces reel limite par les permissions du systeme d'exploitation
+
+Si la capture ecran est noire sous Wayland, installe un backend de capture:
+
+```bash
+sudo dnf install -y gnome-screenshot grim scrot
+```
+
+Le mode `SCREENSHOT_BACKEND=auto` essaie `gnome-screenshot`, `grim`, `spectacle`, `scrot`, puis `mss`.
 
 Pour revenir a un mode limite au dossier du projet:
 

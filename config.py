@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     database_path: Path = Field(default=Path("data/agent_memory.sqlite3"), alias="DATABASE_PATH")
     screenshot_path: Path = Field(default=Path("data/latest_screenshot.png"), alias="SCREENSHOT_PATH")
+    screenshot_backend: str = Field(default="auto", alias="SCREENSHOT_BACKEND")
     file_access_mode: str = Field(default="full", alias="FILE_ACCESS_MODE")
     allowed_file_roots: str = Field(default="", alias="ALLOWED_FILE_ROOTS")
     terminal_workdir: Path = Field(default=Path.home(), alias="TERMINAL_WORKDIR")
