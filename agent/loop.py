@@ -207,6 +207,8 @@ class AgentLoop:
         if not result.get("ok"):
             return False
         goal = self.goal.lower()
+        if self._goal_requires_followup_work(goal):
+            return False
         tool = str(action.get("tool", ""))
         if tool == "search" and any(token in goal for token in ("cherche", "recherche", "search", "google")):
             return True
@@ -216,3 +218,27 @@ class AgentLoop:
                 "search" in url or "duckduckgo.com" in url or "?q=" in url or "&q=" in url
             )
         return False
+
+    @staticmethod
+    def _goal_requires_followup_work(goal: str) -> bool:
+        followup_tokens = (
+            "crée",
+            "cree",
+            "écris",
+            "ecris",
+            "fichier",
+            ".txt",
+            ".md",
+            "rapport",
+            "résumé",
+            "resume",
+            "récupère",
+            "recupere",
+            "analyse",
+            "compare",
+            "liste",
+            "sauvegarde",
+            "enregistre",
+            "contenant",
+        )
+        return any(token in goal for token in followup_tokens)
