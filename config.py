@@ -21,12 +21,16 @@ class Settings(BaseSettings):
     )
     mistral_min_seconds_between_calls: float = Field(default=20.0, alias="MISTRAL_MIN_SECONDS_BETWEEN_CALLS")
     mistral_rate_limit_backoff_seconds: float = Field(default=60.0, alias="MISTRAL_RATE_LIMIT_BACKOFF_SECONDS")
+    mistral_vision_model: str = Field(default="pixtral-large-latest", alias="MISTRAL_VISION_MODEL")
+    enable_vision_model: bool = Field(default=False, alias="ENABLE_VISION_MODEL")
+    vision_every_steps: int = Field(default=3, alias="VISION_EVERY_STEPS")
 
     telegram_bot_token: Optional[str] = Field(default=None, alias="TELEGRAM_BOT_TOKEN")
     enable_telegram: bool = Field(default=True, alias="ENABLE_TELEGRAM")
 
     database_path: Path = Field(default=Path("data/agent_memory.sqlite3"), alias="DATABASE_PATH")
     screenshot_path: Path = Field(default=Path("data/latest_screenshot.png"), alias="SCREENSHOT_PATH")
+    important_capture_dir: Path = Field(default=Path("data/captures"), alias="IMPORTANT_CAPTURE_DIR")
     screenshot_backend: str = Field(default="auto", alias="SCREENSHOT_BACKEND")
     file_access_mode: str = Field(default="full", alias="FILE_ACCESS_MODE")
     allowed_file_roots: str = Field(default="", alias="ALLOWED_FILE_ROOTS")
@@ -47,8 +51,9 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-def get_settings() -> Settings:
+    def get_settings() -> Settings:
     settings = Settings()
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
     settings.screenshot_path.parent.mkdir(parents=True, exist_ok=True)
+    settings.important_capture_dir.mkdir(parents=True, exist_ok=True)
     return settings

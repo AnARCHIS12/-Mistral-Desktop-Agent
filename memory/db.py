@@ -89,6 +89,21 @@ class MemoryDB:
                 )
                 """
             )
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS captures (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    mission_id INTEGER,
+                    step INTEGER NOT NULL,
+                    path TEXT NOT NULL,
+                    backend TEXT NOT NULL,
+                    signature TEXT NOT NULL,
+                    important INTEGER NOT NULL,
+                    reason TEXT NOT NULL
+                )
+                """
+            )
 
     def add_action(self, goal: str, action: dict[str, Any], result: dict[str, Any]) -> None:
         with self._lock, self._conn:
@@ -233,6 +248,38 @@ class MemoryDB:
                 }
             )
         return checkpoints
+
+    def add_capture(
+        self,
+        mission_id: int | None,
+        step: int,
+        path: str,
+        backend: str,
+        signature: str,
+        important: bool,
+        reason: str,
+    ) -> None:
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO captures(created_at, mission_id, step, path, backend, signature, important, reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (self._now(), mission_id, step, path, backend, signature, 1 if important else 0, reason),
+            )
+
+    def list_captures(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT created_at, mission_id, step, path, backend, signature, important, reason
+                FROM captures
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return [dict(row) | {"important": bool(row["important"])} for row in reversed(rows)]
 
     def close(self) -> None:
         with self._lock:
