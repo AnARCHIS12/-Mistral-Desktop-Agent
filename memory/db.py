@@ -63,6 +63,32 @@ class MemoryDB:
                 )
                 """
             )
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS missions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    goal TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    state_json TEXT NOT NULL
+                )
+                """
+            )
+            self._conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS checkpoints (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    mission_id INTEGER,
+                    step INTEGER NOT NULL,
+                    progress TEXT NOT NULL,
+                    action_json TEXT NOT NULL,
+                    result_json TEXT NOT NULL,
+                    observation_json TEXT NOT NULL
+                )
+                """
+            )
 
     def add_action(self, goal: str, action: dict[str, Any], result: dict[str, Any]) -> None:
         with self._lock, self._conn:
@@ -125,6 +151,88 @@ class MemoryDB:
                 (limit,),
             ).fetchall()
         return [dict(row) for row in reversed(rows)]
+
+    def create_mission(self, goal: str, state: dict[str, Any]) -> int:
+        now = self._now()
+        with self._lock, self._conn:
+            cursor = self._conn.execute(
+                """
+                INSERT INTO missions(created_at, updated_at, goal, status, state_json)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (now, now, goal, state.get("status", "planned"), json.dumps(state, ensure_ascii=True)),
+            )
+            return int(cursor.lastrowid)
+
+    def update_mission(self, mission_id: int, state: dict[str, Any]) -> None:
+        with self._lock, self._conn:
+            self._conn.execute(
+                "UPDATE missions SET updated_at = ?, status = ?, state_json = ? WHERE id = ?",
+                (self._now(), state.get("status", "running"), json.dumps(state, ensure_ascii=True), mission_id),
+            )
+
+    def latest_mission(self) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT id, created_at, updated_at, goal, status, state_json FROM missions ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        if not row:
+            return None
+        payload = dict(row)
+        payload["state"] = json.loads(payload.pop("state_json"))
+        return payload
+
+    def add_checkpoint(
+        self,
+        mission_id: int | None,
+        step: int,
+        progress: str,
+        action: dict[str, Any] | None,
+        result: dict[str, Any] | None,
+        observation: dict[str, Any] | None,
+    ) -> None:
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO checkpoints(created_at, mission_id, step, progress, action_json, result_json, observation_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    self._now(),
+                    mission_id,
+                    step,
+                    progress,
+                    json.dumps(action or {}, ensure_ascii=True),
+                    json.dumps(result or {}, ensure_ascii=True),
+                    json.dumps(observation or {}, ensure_ascii=True),
+                ),
+            )
+
+    def list_checkpoints(self, limit: int = 50) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                """
+                SELECT created_at, mission_id, step, progress, action_json, result_json, observation_json
+                FROM checkpoints
+                ORDER BY id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        checkpoints: list[dict[str, Any]] = []
+        for row in reversed(rows):
+            checkpoints.append(
+                {
+                    "created_at": row["created_at"],
+                    "mission_id": row["mission_id"],
+                    "step": row["step"],
+                    "progress": row["progress"],
+                    "action": json.loads(row["action_json"]),
+                    "result": json.loads(row["result_json"]),
+                    "observation": json.loads(row["observation_json"]),
+                }
+            )
+        return checkpoints
 
     def close(self) -> None:
         with self._lock:

@@ -34,9 +34,12 @@ class Settings(BaseSettings):
     search_engine: str = Field(default="duckduckgo", alias="SEARCH_ENGINE")
 
     max_steps: int = Field(default=50, alias="MAX_STEPS")
+    max_runtime_seconds: int = Field(default=7200, alias="MAX_RUNTIME_SECONDS")
     max_retries: int = Field(default=3, alias="MAX_RETRIES")
     loop_delay_seconds: float = Field(default=1.0, alias="LOOP_DELAY_SECONDS")
     max_repeated_actions: int = Field(default=3, alias="MAX_REPEATED_ACTIONS")
+    max_stagnant_observations: int = Field(default=3, alias="MAX_STAGNANT_OBSERVATIONS")
+    checkpoint_every_steps: int = Field(default=1, alias="CHECKPOINT_EVERY_STEPS")
     terminal_timeout_seconds: int = Field(default=30, alias="TERMINAL_TIMEOUT_SECONDS")
     browser_headless: bool = Field(default=False, alias="BROWSER_HEADLESS")
 

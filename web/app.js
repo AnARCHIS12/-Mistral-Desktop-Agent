@@ -1,6 +1,8 @@
 const goalInput = document.querySelector("#goal");
 const goalBtn = document.querySelector("#goalBtn");
 const startBtn = document.querySelector("#startBtn");
+const pauseBtn = document.querySelector("#pauseBtn");
+const resumeBtn = document.querySelector("#resumeBtn");
 const stopBtn = document.querySelector("#stopBtn");
 const statusEl = document.querySelector("#status");
 const progressEl = document.querySelector("#progress");
@@ -8,6 +10,7 @@ const actionEl = document.querySelector("#action");
 const logsEl = document.querySelector("#logs");
 const screenEl = document.querySelector("#screen");
 const screenPlaceholder = document.querySelector("#screenPlaceholder");
+const missionEl = document.querySelector("#mission");
 
 function addLog(message) {
   const row = document.createElement("div");
@@ -47,12 +50,35 @@ async function refreshScreenshot() {
 
 function renderStatus(status) {
   statusEl.textContent = status.running ? "running" : "stopped";
+  if (status.paused) statusEl.textContent = "paused";
   progressEl.textContent = status.progress || "idle";
   if (status.goal && !goalInput.value) {
     goalInput.value = status.goal;
   }
   if (status.current_action) {
     actionEl.textContent = JSON.stringify(status.current_action, null, 2);
+  }
+  if (status.mission) renderMission(status.mission);
+}
+
+function renderMission(mission) {
+  const subtasks = mission.subtasks || [];
+  if (!subtasks.length) {
+    missionEl.textContent = "Aucune sous-tache";
+    return;
+  }
+  missionEl.innerHTML = "";
+  const summary = document.createElement("div");
+  summary.textContent = `${mission.status} - ${mission.completed || 0}/${mission.total || subtasks.length}`;
+  missionEl.appendChild(summary);
+  for (const subtask of subtasks) {
+    const row = document.createElement("div");
+    row.className = "subtask";
+    const status = document.createElement("strong");
+    status.textContent = subtask.status;
+    row.appendChild(status);
+    row.append(` - ${subtask.text}`);
+    missionEl.appendChild(row);
   }
 }
 
@@ -99,6 +125,26 @@ stopBtn.addEventListener("click", async () => {
   }
 });
 
+pauseBtn.addEventListener("click", async () => {
+  try {
+    const status = await post("/pause");
+    renderStatus(status);
+    addLog("Agent en pause");
+  } catch (error) {
+    addLog(`Erreur: ${error.message}`);
+  }
+});
+
+resumeBtn.addEventListener("click", async () => {
+  try {
+    const status = await post("/resume");
+    renderStatus(status);
+    addLog("Agent relance");
+  } catch (error) {
+    addLog(`Erreur: ${error.message}`);
+  }
+});
+
 function connectWebSocket() {
   const protocol = location.protocol === "https:" ? "wss" : "ws";
   const socket = new WebSocket(`${protocol}://${location.host}/ws`);
@@ -113,6 +159,7 @@ function connectWebSocket() {
     }
     if (payload.screenshot_backend) addLog(`Capture: ${payload.screenshot_backend}`);
     if (payload.action) actionEl.textContent = JSON.stringify(payload.action, null, 2);
+    if (payload.mission) renderMission(payload.mission);
     if (payload.ocr_error) addLog(`OCR: ${payload.ocr_error}`);
     if (data.type === "result") addLog(`${payload.action?.tool || "tool"} -> ${payload.result?.ok ? "ok" : "error"}`);
     if (data.type === "error") addLog(`Erreur: ${payload.message || payload.error || JSON.stringify(payload)}`);

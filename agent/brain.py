@@ -172,10 +172,17 @@ PLANNER_TOOLS: list[dict[str, Any]] = [
 ]
 
 
-def build_prompt(goal: str, screen_text: str, memory: list[dict[str, Any]], history: list[dict[str, Any]]) -> str:
+def build_prompt(
+    goal: str,
+    screen_text: str,
+    memory: list[dict[str, Any]],
+    history: list[dict[str, Any]],
+    mission: dict[str, Any] | None = None,
+) -> str:
     return json.dumps(
         {
             "objectif": goal,
+            "mission_longue": mission or {},
             "etat_ecran_ocr": screen_text[-6000:],
             "memoire_recente": memory[-10:],
             "historique_actions": history[-10:],

@@ -34,6 +34,16 @@ async def stop_agent(request: Request) -> dict:
     return agent.status()
 
 
+@router.post("/pause")
+async def pause_agent(request: Request) -> dict:
+    return await request.app.state.agent.pause()
+
+
+@router.post("/resume")
+async def resume_agent(request: Request) -> dict:
+    return await request.app.state.agent.resume()
+
+
 @router.get("/status")
 async def status(request: Request) -> dict:
     return request.app.state.agent.status()
@@ -43,6 +53,16 @@ async def status(request: Request) -> dict:
 async def logs(request: Request, limit: int = 100) -> dict:
     memory = request.app.state.memory
     return {"logs": memory.list_logs(limit=max(1, min(limit, 500)))}
+
+
+@router.get("/mission")
+async def mission(request: Request) -> dict:
+    return {"mission": request.app.state.memory.latest_mission()}
+
+
+@router.get("/checkpoints")
+async def checkpoints(request: Request, limit: int = 50) -> dict:
+    return {"checkpoints": request.app.state.memory.list_checkpoints(limit=max(1, min(limit, 200)))}
 
 
 @router.get("/screenshot")

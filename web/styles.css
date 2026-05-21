@@ -174,7 +174,8 @@ button.wide {
 }
 
 pre,
-#logs {
+#logs,
+#mission {
   margin: 12px 0 0;
   white-space: pre-wrap;
   word-break: break-word;
@@ -191,6 +192,20 @@ pre,
 #logs {
   overflow: auto;
   max-height: 340px;
+}
+
+#mission {
+  font-family: inherit;
+  color: #cbd5df;
+}
+
+.subtask {
+  padding: 8px 0;
+  border-bottom: 1px solid #2b333d;
+}
+
+.subtask strong {
+  color: #f5f7fa;
 }
 
 .log {

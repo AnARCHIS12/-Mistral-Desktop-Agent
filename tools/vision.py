@@ -70,8 +70,17 @@ class VisionTools:
             "width": image.width,
             "height": image.height,
             "backend": backend,
+            "signature": VisionTools.image_signature(path),
             "base64": VisionTools._image_b64(path),
         }
+
+    @staticmethod
+    def image_signature(path: Path) -> str:
+        image = Image.open(path).convert("L").resize((8, 8))
+        pixels = list(image.getdata())
+        average = sum(pixels) / len(pixels)
+        bits = "".join("1" if pixel > average else "0" for pixel in pixels)
+        return f"{int(bits, 2):016x}"
 
     @staticmethod
     def _is_black_image(path: Path) -> bool:

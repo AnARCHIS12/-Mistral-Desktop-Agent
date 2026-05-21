@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import time
 from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 from agent.executor import ActionExecutor
+from agent.mission import MissionState
 from agent.planner import MistralPlanner, MistralRateLimitError, PlannerError
 from api.websocket import WebSocketHub
 from config import Settings
@@ -36,14 +38,22 @@ class AgentLoop:
         self.progress = "idle"
         self._task: Optional[asyncio.Task[None]] = None
         self._stop_event = asyncio.Event()
+        self._pause_event = asyncio.Event()
+        self._pause_event.set()
         self._history: list[dict[str, Any]] = []
+        self._mission: MissionState | None = None
+        self._mission_id: int | None = None
+        self._last_signature: str | None = None
+        self._stagnant_count = 0
 
     async def set_goal(self, goal: str) -> None:
         self.goal = goal.strip()
         self.current_action = None
         self._history = []
+        self._mission = MissionState.from_goal(self.goal)
+        self._mission_id = self.memory.create_mission(self.goal, self._mission.to_dict())
         self.memory.add_log("goal", self.goal)
-        await self._publish("goal", {"goal": self.goal})
+        await self._publish("goal", {"goal": self.goal, "mission": self._mission.to_dict()})
 
     async def start(self) -> dict[str, Any]:
         if self.running:
@@ -55,35 +65,68 @@ class AgentLoop:
         self.running = True
         self.progress = "starting"
         self._stop_event.clear()
+        self._pause_event.set()
+        if self._mission:
+            self._mission.status = "running"
+            self.memory.update_mission(self._mission_id or 0, self._mission.to_dict())
         self._task = asyncio.create_task(self._run(), name="agent-loop")
         await self._publish("status", self.status())
         return {"ok": True, "message": "Agent demarre", **self.status()}
 
+    async def pause(self) -> dict[str, Any]:
+        if self.running:
+            self._pause_event.clear()
+            self.progress = "paused"
+            if self._mission:
+                self._mission.status = "paused"
+                self.memory.update_mission(self._mission_id or 0, self._mission.to_dict())
+            await self._publish("status", self.status())
+        return {"ok": True, **self.status()}
+
+    async def resume(self) -> dict[str, Any]:
+        self._pause_event.set()
+        if self._mission and self.running:
+            self._mission.status = "running"
+            self.memory.update_mission(self._mission_id or 0, self._mission.to_dict())
+        await self._publish("status", self.status())
+        return {"ok": True, **self.status()}
+
     async def stop(self) -> None:
         self._stop_event.set()
+        self._pause_event.set()
         if self._task and not self._task.done():
             await self._task
         self.running = False
         self.progress = "stopped"
+        if self._mission and self._mission.status not in {"completed"}:
+            self._mission.status = "stopped"
+            self.memory.update_mission(self._mission_id or 0, self._mission.to_dict())
         await self.executor.close()
         await self._publish("status", self.status())
 
     def status(self) -> dict[str, Any]:
         return {
             "running": self.running,
+            "paused": not self._pause_event.is_set(),
             "goal": self.goal,
             "progress": self.progress,
             "current_action": self.current_action,
+            "mission": self._mission.to_dict() if self._mission else None,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
 
     async def _run(self) -> None:
         retries: Counter[str] = Counter()
         repeated: Counter[str] = Counter()
+        started_at = time.monotonic()
         try:
             for step in range(1, self.settings.max_steps + 1):
                 if self._stop_event.is_set():
                     break
+                if time.monotonic() - started_at > self.settings.max_runtime_seconds:
+                    self.progress = "stopped: max runtime reached"
+                    break
+                await self._pause_event.wait()
 
                 self.progress = f"step {step}/{self.settings.max_steps}: observation"
                 try:
@@ -103,10 +146,13 @@ class AgentLoop:
                         "progress": self.progress,
                         "screenshot": screenshot.get("base64"),
                         "screenshot_backend": screenshot.get("backend"),
+                        "screenshot_signature": screenshot.get("signature"),
                         "ocr": screen_text.get("text", "")[-2000:],
                         "ocr_error": screen_text.get("error"),
+                        "mission": self._mission.to_dict() if self._mission else None,
                     },
                 )
+                self._track_stagnation(screenshot.get("signature"))
 
                 self.progress = f"step {step}/{self.settings.max_steps}: planning"
                 memory = self.memory.recent_actions(limit=12)
@@ -116,6 +162,7 @@ class AgentLoop:
                         screen_text.get("text", ""),
                         memory,
                         self._history,
+                        self._mission.to_dict() if self._mission else None,
                     )
                 except MistralRateLimitError as exc:
                     result = {"ok": False, "error": str(exc), "retry_after_seconds": exc.retry_after_seconds}
@@ -165,7 +212,32 @@ class AgentLoop:
                 result = await self.executor.execute(action)
                 self.memory.add_action(self.goal, action, result)
                 self._history.append({"action": action, "result": result})
-                await self._publish("result", {"action": action, "result": result, "progress": self.progress})
+                if self._mission:
+                    self._mission.update_after_action(action, result)
+                    self.memory.update_mission(self._mission_id or 0, self._mission.to_dict())
+                if step % max(self.settings.checkpoint_every_steps, 1) == 0:
+                    self.memory.add_checkpoint(
+                        self._mission_id,
+                        step,
+                        self.progress,
+                        action,
+                        result,
+                        {
+                            "screenshot_backend": screenshot.get("backend"),
+                            "screenshot_signature": screenshot.get("signature"),
+                            "ocr_excerpt": screen_text.get("text", "")[-1000:],
+                            "stagnant_count": self._stagnant_count,
+                        },
+                    )
+                await self._publish(
+                    "result",
+                    {
+                        "action": action,
+                        "result": result,
+                        "progress": self.progress,
+                        "mission": self._mission.to_dict() if self._mission else None,
+                    },
+                )
 
                 if self._result_satisfies_goal(action, result):
                     self.progress = "done"
@@ -191,6 +263,9 @@ class AgentLoop:
             await self._publish("error", {"message": str(exc)})
         finally:
             self.running = False
+            if self._mission and self.progress == "done":
+                self._mission.status = "completed"
+                self.memory.update_mission(self._mission_id or 0, self._mission.to_dict())
             await self._publish("status", self.status())
 
     async def _publish(self, event_type: str, payload: dict[str, Any]) -> None:
@@ -202,6 +277,21 @@ class AgentLoop:
     def _action_key(action: dict[str, Any]) -> str:
         raw = f"{action.get('tool')}:{action.get('parameters')}"
         return base64.b64encode(raw.encode("utf-8")).decode("ascii")
+
+    def _track_stagnation(self, signature: str | None) -> None:
+        if not signature:
+            return
+        if signature == self._last_signature:
+            self._stagnant_count += 1
+        else:
+            self._stagnant_count = 0
+            self._last_signature = signature
+        if self._stagnant_count >= self.settings.max_stagnant_observations:
+            note = f"Stagnation visuelle detectee ({self._stagnant_count} observations similaires). Change de strategie."
+            self._history.append({"observation": note})
+            if self._mission:
+                self._mission.add_note(note)
+                self.memory.update_mission(self._mission_id or 0, self._mission.to_dict())
 
     def _result_satisfies_goal(self, action: dict[str, Any], result: dict[str, Any]) -> bool:
         if not result.get("ok"):

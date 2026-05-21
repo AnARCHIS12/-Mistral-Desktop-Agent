@@ -173,10 +173,32 @@ Interface web: http://localhost:48723
 
 - `POST /goal` avec `{ "goal": "..." }`
 - `POST /start`
+- `POST /pause`
+- `POST /resume`
 - `POST /stop`
 - `GET /status`
 - `GET /logs`
+- `GET /mission`
+- `GET /checkpoints`
 - `WS /ws`
+
+## Missions longues
+
+L'agent garde maintenant un etat de mission persistant dans SQLite:
+
+- sous-taches extraites de l'objectif
+- checkpoints apres les actions
+- pause/reprise
+- detection de stagnation visuelle
+- reprise plus lisible apres erreur ou limite API
+
+Variables utiles:
+
+```env
+MAX_RUNTIME_SECONDS=7200
+MAX_STAGNANT_OBSERVATIONS=3
+CHECKPOINT_EVERY_STEPS=1
+```
 
 ## Telegram
 

@@ -32,6 +32,7 @@ class MistralPlanner:
         screen_text: str,
         memory: list[dict[str, Any]],
         history: list[dict[str, Any]],
+        mission: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         if not self.settings.mistral_api_key:
             raise PlannerError("MISTRAL_API_KEY is not configured")
@@ -40,7 +41,7 @@ class MistralPlanner:
             "model": self.settings.mistral_model,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": build_prompt(goal, screen_text, memory, history)},
+                {"role": "user", "content": build_prompt(goal, screen_text, memory, history, mission)},
             ],
             "response_format": {"type": "json_object"},
             "tools": PLANNER_TOOLS,
