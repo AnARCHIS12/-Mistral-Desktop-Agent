@@ -65,6 +65,11 @@ async def checkpoints(request: Request, limit: int = 50) -> dict:
     return {"checkpoints": request.app.state.memory.list_checkpoints(limit=max(1, min(limit, 200)))}
 
 
+@router.get("/captures")
+async def captures(request: Request, limit: int = 50) -> dict:
+    return {"captures": request.app.state.memory.list_captures(limit=max(1, min(limit, 200)))}
+
+
 @router.get("/screenshot")
 async def screenshot(request: Request) -> FileResponse:
     path = request.app.state.settings.screenshot_path

@@ -25,6 +25,9 @@ class MistralPlanner:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self._last_call_at = 0.0
+        self.calls = 0
+        self.rate_limits = 0
+        self.usage: dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
     async def next_action(
         self,
@@ -58,6 +61,7 @@ class MistralPlanner:
             response = await client.post(self.settings.mistral_api_url, headers=headers, json=payload)
             self._last_call_at = time.monotonic()
             if response.status_code == 429:
+                self.rate_limits += 1
                 retry_after = self._retry_after_seconds(response)
                 raise MistralRateLimitError(
                     retry_after,
@@ -65,6 +69,8 @@ class MistralPlanner:
                 )
             response.raise_for_status()
             data = response.json()
+            self.calls += 1
+            self._add_usage(data.get("usage") or {})
 
         message = data["choices"][0]["message"]
         tool_calls = message.get("tool_calls") or []
@@ -90,6 +96,9 @@ class MistralPlanner:
         action.setdefault("status", "continue")
         return action
 
+    def stats(self) -> dict[str, Any]:
+        return {"calls": self.calls, "rate_limits": self.rate_limits, "usage": self.usage}
+
     async def _wait_for_rate_limit_slot(self) -> None:
         elapsed = time.monotonic() - self._last_call_at
         wait_seconds = self.settings.mistral_min_seconds_between_calls - elapsed
@@ -104,3 +113,10 @@ class MistralPlanner:
             except ValueError:
                 pass
         return self.settings.mistral_rate_limit_backoff_seconds
+
+    def _add_usage(self, usage: dict[str, Any]) -> None:
+        for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+            try:
+                self.usage[key] += int(usage.get(key) or 0)
+            except (TypeError, ValueError):
+                pass

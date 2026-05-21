@@ -51,7 +51,7 @@ class Settings(BaseSettings):
 
 
 @lru_cache
-    def get_settings() -> Settings:
+def get_settings() -> Settings:
     settings = Settings()
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
     settings.screenshot_path.parent.mkdir(parents=True, exist_ok=True)

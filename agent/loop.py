@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import shutil
 import time
 from collections import Counter
 from datetime import datetime, timezone
@@ -10,6 +11,7 @@ from typing import Any, Optional
 from agent.executor import ActionExecutor
 from agent.mission import MissionState
 from agent.planner import MistralPlanner, MistralRateLimitError, PlannerError
+from agent.vision_model import VisionModel
 from api.websocket import WebSocketHub
 from config import Settings
 from integrations.telegram_bot import TelegramIntegration
@@ -30,6 +32,7 @@ class AgentLoop:
         self.websocket_hub = websocket_hub
         self.telegram = telegram
         self.planner = MistralPlanner(settings)
+        self.vision_model = VisionModel(settings)
         self.executor = ActionExecutor(settings)
         self.vision = VisionTools(settings)
         self.goal: str = ""
@@ -45,6 +48,9 @@ class AgentLoop:
         self._mission_id: int | None = None
         self._last_signature: str | None = None
         self._stagnant_count = 0
+        self._started_monotonic: float | None = None
+        self._current_step = 0
+        self._last_vision_analysis: dict[str, Any] | None = None
 
     async def set_goal(self, goal: str) -> None:
         self.goal = goal.strip()
@@ -112,15 +118,30 @@ class AgentLoop:
             "progress": self.progress,
             "current_action": self.current_action,
             "mission": self._mission.to_dict() if self._mission else None,
+            "monitoring": self.monitoring(),
             "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def monitoring(self) -> dict[str, Any]:
+        elapsed = int(time.monotonic() - self._started_monotonic) if self._started_monotonic else 0
+        return {
+            "elapsed_seconds": elapsed,
+            "current_step": self._current_step,
+            "max_steps": self.settings.max_steps,
+            "stagnant_observations": self._stagnant_count,
+            "planner": self.planner.stats(),
+            "vision_analysis": self._last_vision_analysis,
+            "next_subtask": self._mission.current_subtask if self._mission else None,
         }
 
     async def _run(self) -> None:
         retries: Counter[str] = Counter()
         repeated: Counter[str] = Counter()
         started_at = time.monotonic()
+        self._started_monotonic = started_at
         try:
             for step in range(1, self.settings.max_steps + 1):
+                self._current_step = step
                 if self._stop_event.is_set():
                     break
                 if time.monotonic() - started_at > self.settings.max_runtime_seconds:
@@ -153,16 +174,31 @@ class AgentLoop:
                     },
                 )
                 self._track_stagnation(screenshot.get("signature"))
+                important_capture = self._save_important_capture(step, screenshot, "observation")
+
+                vision_analysis = None
+                if self.settings.enable_vision_model and step % max(self.settings.vision_every_steps, 1) == 0:
+                    vision_analysis = await self.vision_model.analyze(
+                        self.settings.screenshot_path,
+                        self.goal,
+                        screen_text.get("text", ""),
+                    )
+                    self._last_vision_analysis = vision_analysis
+                    if not vision_analysis.get("ok") and not vision_analysis.get("skipped"):
+                        self.memory.add_error("vision_model", str(vision_analysis.get("error", "unknown")))
 
                 self.progress = f"step {step}/{self.settings.max_steps}: planning"
                 memory = self.memory.recent_actions(limit=12)
+                mission_payload = self._mission.to_dict() if self._mission else {}
+                if vision_analysis:
+                    mission_payload["vision_analysis"] = vision_analysis
                 try:
                     action = await self.planner.next_action(
                         self.goal,
                         screen_text.get("text", ""),
                         memory,
                         self._history,
-                        self._mission.to_dict() if self._mission else None,
+                        mission_payload,
                     )
                 except MistralRateLimitError as exc:
                     result = {"ok": False, "error": str(exc), "retry_after_seconds": exc.retry_after_seconds}
@@ -227,6 +263,8 @@ class AgentLoop:
                             "screenshot_signature": screenshot.get("signature"),
                             "ocr_excerpt": screen_text.get("text", "")[-1000:],
                             "stagnant_count": self._stagnant_count,
+                            "important_capture": important_capture,
+                            "vision_analysis": vision_analysis,
                         },
                     )
                 await self._publish(
@@ -236,6 +274,7 @@ class AgentLoop:
                         "result": result,
                         "progress": self.progress,
                         "mission": self._mission.to_dict() if self._mission else None,
+                        "monitoring": self.monitoring(),
                     },
                 )
 
@@ -292,6 +331,39 @@ class AgentLoop:
             if self._mission:
                 self._mission.add_note(note)
                 self.memory.update_mission(self._mission_id or 0, self._mission.to_dict())
+
+    def _save_important_capture(self, step: int, screenshot: dict[str, Any], reason: str) -> dict[str, Any] | None:
+        signature = str(screenshot.get("signature") or "")
+        if not signature:
+            return None
+        important = step == 1 or self._stagnant_count == 0 or self._stagnant_count >= self.settings.max_stagnant_observations
+        if not important:
+            return None
+        source = self.settings.screenshot_path
+        if not source.exists():
+            return None
+        target = self.settings.important_capture_dir / f"mission_{self._mission_id or 0}_step_{step}_{signature}.png"
+        try:
+            shutil.copy2(source, target)
+        except OSError as exc:
+            self.memory.add_error("capture", str(exc))
+            return None
+        payload = {
+            "path": str(target),
+            "backend": str(screenshot.get("backend") or ""),
+            "signature": signature,
+            "reason": reason,
+        }
+        self.memory.add_capture(
+            self._mission_id,
+            step,
+            payload["path"],
+            payload["backend"],
+            payload["signature"],
+            True,
+            reason,
+        )
+        return payload
 
     def _result_satisfies_goal(self, action: dict[str, Any], result: dict[str, Any]) -> bool:
         if not result.get("ok"):
