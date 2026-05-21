@@ -146,7 +146,7 @@ MISTRAL_MODEL=mistral-large-latest
 MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20
 MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60
 MISTRAL_VISION_MODEL=pixtral-large-latest
-ENABLE_VISION_MODEL=false
+ENABLE_VISION_MODEL=true
 VISION_EVERY_STEPS=3
 TELEGRAM_BOT_TOKEN=ton_token_telegram
 ENABLE_TELEGRAM=true
@@ -219,7 +219,7 @@ MISTRAL_VISION_MODEL=pixtral-large-latest
 VISION_EVERY_STEPS=3
 ```
 
-Garde `ENABLE_VISION_MODEL=false` si tu veux limiter les appels API et eviter des couts supplementaires.
+Passe `ENABLE_VISION_MODEL=false` si tu veux limiter les appels API et eviter des couts supplementaires.
 
 Variables utiles:
 

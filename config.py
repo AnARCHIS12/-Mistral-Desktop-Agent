@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     mistral_min_seconds_between_calls: float = Field(default=20.0, alias="MISTRAL_MIN_SECONDS_BETWEEN_CALLS")
     mistral_rate_limit_backoff_seconds: float = Field(default=60.0, alias="MISTRAL_RATE_LIMIT_BACKOFF_SECONDS")
     mistral_vision_model: str = Field(default="pixtral-large-latest", alias="MISTRAL_VISION_MODEL")
-    enable_vision_model: bool = Field(default=False, alias="ENABLE_VISION_MODEL")
+    enable_vision_model: bool = Field(default=True, alias="ENABLE_VISION_MODEL")
     vision_every_steps: int = Field(default=3, alias="VISION_EVERY_STEPS")
 
     telegram_bot_token: Optional[str] = Field(default=None, alias="TELEGRAM_BOT_TOKEN")

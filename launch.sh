@@ -29,14 +29,22 @@ pause() {
   read -r -p "Appuie sur Entree pour continuer..." _
 }
 
+normalize_bool() {
+  case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+    y|yes|oui|o|true|1|on) printf '%s' "true" ;;
+    n|no|non|false|0|off) printf '%s' "false" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
 configure_env() {
   printf '\nConfiguration .env\n'
   read -r -p "MISTRAL_API_KEY: " mistral_key
   read -r -p "TELEGRAM_BOT_TOKEN optionnel: " telegram_token
-  read -r -p "Activer le modele vision Mistral ? [false]: " enable_vision
+  read -r -p "Activer le modele vision Mistral ? [true]: " enable_vision
   read -r -p "Port web [48723]: " port
   port="${port:-48723}"
-  enable_vision="${enable_vision:-false}"
+  enable_vision="$(normalize_bool "${enable_vision:-true}")"
 
   local enable_telegram="false"
   if [[ -n "$telegram_token" ]]; then

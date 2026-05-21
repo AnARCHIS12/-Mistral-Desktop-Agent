@@ -93,6 +93,14 @@ prompt_text() {
   printf '%s' "${value:-$default}"
 }
 
+normalize_bool() {
+  case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
+    y|yes|oui|o|true|1|on) printf '%s' "true" ;;
+    n|no|non|false|0|off) printf '%s' "false" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
 version_ge_311() {
   "$1" - <<'PY'
 import sys
@@ -182,7 +190,7 @@ create_env_file() {
   local mistral_key="${MISTRAL_API_KEY:-}"
   local telegram_token="${TELEGRAM_BOT_TOKEN:-}"
   local enable_telegram="${ENABLE_TELEGRAM:-true}"
-  local enable_vision="${ENABLE_VISION_MODEL:-false}"
+  local enable_vision="${ENABLE_VISION_MODEL:-true}"
 
   if [[ -z "$mistral_key" ]]; then
     mistral_key="$(prompt_secret "Cle MISTRAL_API_KEY (laisser vide pour plus tard): ")"
@@ -195,7 +203,7 @@ create_env_file() {
   else
     enable_telegram="$(prompt_text "Activer Telegram ? [true/false] (${enable_telegram}): " "$enable_telegram")"
   fi
-  enable_vision="$(prompt_text "Activer le modele vision Mistral ? [true/false] (${enable_vision}): " "$enable_vision")"
+  enable_vision="$(normalize_bool "$(prompt_text "Activer le modele vision Mistral ? [true/false] (${enable_vision}): " "$enable_vision")")"
 
   umask 077
   cat > "$env_file" <<EOF

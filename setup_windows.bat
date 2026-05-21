@@ -92,7 +92,7 @@ goto menu
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$m=Read-Host 'MISTRAL_API_KEY';" ^
   "$t=Read-Host 'TELEGRAM_BOT_TOKEN optionnel';" ^
-  "$v=Read-Host 'Activer le modele vision Mistral ? [false]'; if([string]::IsNullOrWhiteSpace($v)){$v='false'};" ^
+  "$v=Read-Host 'Activer le modele vision Mistral ? [true]'; if([string]::IsNullOrWhiteSpace($v)){$v='true'}; if($v -match '^(?i)(y|yes|oui|o|1|on)$'){$v='true'}; if($v -match '^(?i)(n|no|non|0|off)$'){$v='false'};" ^
   "$p=Read-Host 'Port web [48723]'; if([string]::IsNullOrWhiteSpace($p)){$p='48723'};" ^
   "$e=if([string]::IsNullOrWhiteSpace($t)){'false'}else{'true'};" ^
   "$home=[Environment]::GetFolderPath('UserProfile');" ^
