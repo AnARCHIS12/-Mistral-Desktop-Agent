@@ -191,6 +191,13 @@ create_env_file() {
   local telegram_token="${TELEGRAM_BOT_TOKEN:-}"
   local enable_telegram="${ENABLE_TELEGRAM:-true}"
   local enable_vision="${ENABLE_VISION_MODEL:-true}"
+  local slack_webhook_url="${SLACK_WEBHOOK_URL:-}"
+  local discord_webhook_url="${DISCORD_WEBHOOK_URL:-}"
+  local github_token="${GITHUB_TOKEN:-}"
+  local github_repo="${GITHUB_REPO:-}"
+  local notion_token="${NOTION_TOKEN:-}"
+  local notion_parent_page_id="${NOTION_PARENT_PAGE_ID:-}"
+  local gmail_credentials_file="${GMAIL_CREDENTIALS_FILE:-credentials/gmail_credentials.json}"
 
   if [[ -z "$mistral_key" ]]; then
     mistral_key="$(prompt_secret "Cle MISTRAL_API_KEY (laisser vide pour plus tard): ")"
@@ -204,6 +211,14 @@ create_env_file() {
     enable_telegram="$(prompt_text "Activer Telegram ? [true/false] (${enable_telegram}): " "$enable_telegram")"
   fi
   enable_vision="$(normalize_bool "$(prompt_text "Activer le modele vision Mistral ? [true/false] (${enable_vision}): " "$enable_vision")")"
+  printf '\nConnecteurs optionnels (laisser vide pour ignorer)\n'
+  slack_webhook_url="$(prompt_text "Slack webhook URL: " "$slack_webhook_url")"
+  discord_webhook_url="$(prompt_text "Discord webhook URL: " "$discord_webhook_url")"
+  github_token="$(prompt_secret "GitHub token: " "$github_token")"
+  github_repo="$(prompt_text "GitHub repo [owner/repo]: " "$github_repo")"
+  notion_token="$(prompt_secret "Notion token: " "$notion_token")"
+  notion_parent_page_id="$(prompt_text "Notion parent page ID: " "$notion_parent_page_id")"
+  gmail_credentials_file="$(prompt_text "Gmail credentials JSON (${gmail_credentials_file}): " "$gmail_credentials_file")"
 
   umask 077
   cat > "$env_file" <<EOF
@@ -235,19 +250,19 @@ MAX_STAGNANT_OBSERVATIONS=3
 CHECKPOINT_EVERY_STEPS=1
 TERMINAL_TIMEOUT_SECONDS=30
 BROWSER_HEADLESS=false
-GMAIL_CREDENTIALS_FILE=credentials/gmail_credentials.json
+GMAIL_CREDENTIALS_FILE=$gmail_credentials_file
 GMAIL_TOKEN_FILE=credentials/gmail_token.json
 GMAIL_SCOPE=https://www.googleapis.com/auth/gmail.modify
 GMAIL_ENABLE_MODIFY=true
 GMAIL_ALLOW_ARCHIVE=true
 GMAIL_ALLOW_SEND=true
 GMAIL_ALLOW_DELETE=true
-SLACK_WEBHOOK_URL=
-DISCORD_WEBHOOK_URL=
-GITHUB_TOKEN=
-GITHUB_REPO=
-NOTION_TOKEN=
-NOTION_PARENT_PAGE_ID=
+SLACK_WEBHOOK_URL=$slack_webhook_url
+DISCORD_WEBHOOK_URL=$discord_webhook_url
+GITHUB_TOKEN=$github_token
+GITHUB_REPO=$github_repo
+NOTION_TOKEN=$notion_token
+NOTION_PARENT_PAGE_ID=$notion_parent_page_id
 CONNECTOR_TIMEOUT_SECONDS=30
 EOF
   log ".env configure"

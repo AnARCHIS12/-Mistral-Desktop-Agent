@@ -42,6 +42,15 @@ configure_env() {
   read -r -p "MISTRAL_API_KEY: " mistral_key
   read -r -p "TELEGRAM_BOT_TOKEN optionnel: " telegram_token
   read -r -p "Activer le modele vision Mistral ? [true]: " enable_vision
+  printf '\nConnecteurs optionnels (laisser vide pour ignorer)\n'
+  read -r -p "Slack webhook URL: " slack_webhook_url
+  read -r -p "Discord webhook URL: " discord_webhook_url
+  read -r -p "GitHub token: " github_token
+  read -r -p "GitHub repo [owner/repo]: " github_repo
+  read -r -p "Notion token: " notion_token
+  read -r -p "Notion parent page ID: " notion_parent_page_id
+  read -r -p "Gmail credentials JSON [credentials/gmail_credentials.json]: " gmail_credentials_file
+  gmail_credentials_file="${gmail_credentials_file:-credentials/gmail_credentials.json}"
   read -r -p "Port web [48723]: " port
   port="${port:-48723}"
   enable_vision="$(normalize_bool "${enable_vision:-true}")"
@@ -81,19 +90,19 @@ MAX_STAGNANT_OBSERVATIONS=3
 CHECKPOINT_EVERY_STEPS=1
 TERMINAL_TIMEOUT_SECONDS=30
 BROWSER_HEADLESS=false
-GMAIL_CREDENTIALS_FILE=credentials/gmail_credentials.json
+GMAIL_CREDENTIALS_FILE=$gmail_credentials_file
 GMAIL_TOKEN_FILE=credentials/gmail_token.json
 GMAIL_SCOPE=https://www.googleapis.com/auth/gmail.modify
 GMAIL_ENABLE_MODIFY=true
 GMAIL_ALLOW_ARCHIVE=true
 GMAIL_ALLOW_SEND=true
 GMAIL_ALLOW_DELETE=true
-SLACK_WEBHOOK_URL=
-DISCORD_WEBHOOK_URL=
-GITHUB_TOKEN=
-GITHUB_REPO=
-NOTION_TOKEN=
-NOTION_PARENT_PAGE_ID=
+SLACK_WEBHOOK_URL=$slack_webhook_url
+DISCORD_WEBHOOK_URL=$discord_webhook_url
+GITHUB_TOKEN=$github_token
+GITHUB_REPO=$github_repo
+NOTION_TOKEN=$notion_token
+NOTION_PARENT_PAGE_ID=$notion_parent_page_id
 CONNECTOR_TIMEOUT_SECONDS=30
 EOF
   log ".env configure"
