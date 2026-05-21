@@ -122,6 +122,12 @@ button.secondary {
   color: #f2f5f8;
 }
 
+button.compact {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
 button.wide {
   margin-top: 10px;
 }
@@ -175,7 +181,9 @@ button.wide {
 
 pre,
 #logs,
-#mission {
+#mission,
+#supervision,
+#captures {
   margin: 12px 0 0;
   white-space: pre-wrap;
   word-break: break-word;
@@ -197,6 +205,53 @@ pre,
 #mission {
   font-family: inherit;
   color: #cbd5df;
+}
+
+.metrics,
+.captures {
+  font-family: inherit;
+  color: #cbd5df;
+}
+
+.metric {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1.3fr);
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #2b333d;
+}
+
+.metric span {
+  color: #91a1b0;
+}
+
+.metric strong {
+  color: #f5f7fa;
+  font-weight: 650;
+}
+
+.panel-subhead {
+  margin-top: 18px;
+  color: #9fb0c0;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.capture-row {
+  display: grid;
+  gap: 3px;
+  padding: 8px 0;
+  border-bottom: 1px solid #2b333d;
+}
+
+.capture-row strong {
+  color: #f5f7fa;
+}
+
+.capture-row span {
+  color: #9fb0c0;
+  font-size: 12px;
 }
 
 .subtask {

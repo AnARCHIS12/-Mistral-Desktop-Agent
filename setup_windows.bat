@@ -92,10 +92,11 @@ goto menu
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$m=Read-Host 'MISTRAL_API_KEY';" ^
   "$t=Read-Host 'TELEGRAM_BOT_TOKEN optionnel';" ^
+  "$v=Read-Host 'Activer le modele vision Mistral ? [false]'; if([string]::IsNullOrWhiteSpace($v)){$v='false'};" ^
   "$p=Read-Host 'Port web [48723]'; if([string]::IsNullOrWhiteSpace($p)){$p='48723'};" ^
   "$e=if([string]::IsNullOrWhiteSpace($t)){'false'}else{'true'};" ^
   "$home=[Environment]::GetFolderPath('UserProfile');" ^
-  "$lines=@('MISTRAL_API_KEY='+$m,'MISTRAL_MODEL=mistral-large-latest','MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20','MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60','TELEGRAM_BOT_TOKEN='+$t,'ENABLE_TELEGRAM='+$e,'HOST=0.0.0.0','PORT='+$p,'DATABASE_PATH=data/agent_memory.sqlite3','SCREENSHOT_PATH=data/latest_screenshot.png','SCREENSHOT_BACKEND=auto','FILE_ACCESS_MODE=full','ALLOWED_FILE_ROOTS=','TERMINAL_WORKDIR='+$home,'SEARCH_ENGINE=duckduckgo','MAX_STEPS=50','MAX_RUNTIME_SECONDS=7200','MAX_RETRIES=3','LOOP_DELAY_SECONDS=1.0','MAX_REPEATED_ACTIONS=3','MAX_STAGNANT_OBSERVATIONS=3','CHECKPOINT_EVERY_STEPS=1','TERMINAL_TIMEOUT_SECONDS=30','BROWSER_HEADLESS=false');" ^
+  "$lines=@('MISTRAL_API_KEY='+$m,'MISTRAL_MODEL=mistral-large-latest','MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20','MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60','MISTRAL_VISION_MODEL=pixtral-large-latest','ENABLE_VISION_MODEL='+$v,'VISION_EVERY_STEPS=3','TELEGRAM_BOT_TOKEN='+$t,'ENABLE_TELEGRAM='+$e,'HOST=0.0.0.0','PORT='+$p,'DATABASE_PATH=data/agent_memory.sqlite3','SCREENSHOT_PATH=data/latest_screenshot.png','IMPORTANT_CAPTURE_DIR=data/captures','SCREENSHOT_BACKEND=auto','FILE_ACCESS_MODE=full','ALLOWED_FILE_ROOTS=','TERMINAL_WORKDIR='+$home,'SEARCH_ENGINE=duckduckgo','MAX_STEPS=50','MAX_RUNTIME_SECONDS=7200','MAX_RETRIES=3','LOOP_DELAY_SECONDS=1.0','MAX_REPEATED_ACTIONS=3','MAX_STAGNANT_OBSERVATIONS=3','CHECKPOINT_EVERY_STEPS=1','TERMINAL_TIMEOUT_SECONDS=30','BROWSER_HEADLESS=false');" ^
   "Set-Content -Path '.env' -Value $lines -Encoding UTF8"
 exit /b %errorlevel%
 

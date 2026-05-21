@@ -182,6 +182,7 @@ create_env_file() {
   local mistral_key="${MISTRAL_API_KEY:-}"
   local telegram_token="${TELEGRAM_BOT_TOKEN:-}"
   local enable_telegram="${ENABLE_TELEGRAM:-true}"
+  local enable_vision="${ENABLE_VISION_MODEL:-false}"
 
   if [[ -z "$mistral_key" ]]; then
     mistral_key="$(prompt_secret "Cle MISTRAL_API_KEY (laisser vide pour plus tard): ")"
@@ -194,6 +195,7 @@ create_env_file() {
   else
     enable_telegram="$(prompt_text "Activer Telegram ? [true/false] (${enable_telegram}): " "$enable_telegram")"
   fi
+  enable_vision="$(prompt_text "Activer le modele vision Mistral ? [true/false] (${enable_vision}): " "$enable_vision")"
 
   umask 077
   cat > "$env_file" <<EOF
@@ -201,12 +203,16 @@ MISTRAL_API_KEY=$mistral_key
 MISTRAL_MODEL=$MISTRAL_MODEL
 MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20
 MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60
+MISTRAL_VISION_MODEL=pixtral-large-latest
+ENABLE_VISION_MODEL=$enable_vision
+VISION_EVERY_STEPS=3
 TELEGRAM_BOT_TOKEN=$telegram_token
 ENABLE_TELEGRAM=$enable_telegram
 HOST=$HOST
 PORT=$PORT
 DATABASE_PATH=data/agent_memory.sqlite3
 SCREENSHOT_PATH=data/latest_screenshot.png
+IMPORTANT_CAPTURE_DIR=data/captures
 SCREENSHOT_BACKEND=auto
 FILE_ACCESS_MODE=full
 ALLOWED_FILE_ROOTS=

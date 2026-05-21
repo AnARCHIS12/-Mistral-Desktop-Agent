@@ -49,6 +49,11 @@ async def status(request: Request) -> dict:
     return request.app.state.agent.status()
 
 
+@router.get("/monitoring")
+async def monitoring(request: Request) -> dict:
+    return {"monitoring": request.app.state.agent.monitoring()}
+
+
 @router.get("/logs")
 async def logs(request: Request, limit: int = 100) -> dict:
     memory = request.app.state.memory

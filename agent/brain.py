@@ -187,7 +187,11 @@ def build_prompt(
             "memoire_recente": memory[-10:],
             "historique_actions": history[-10:],
             "outils_disponibles": [tool["function"]["name"] for tool in PLANNER_TOOLS],
-            "observation": "La boucle agent capture deja l'ecran et l'OCR avant chaque appel. Ne demande pas screenshot ni ocr comme action.",
+            "observation": (
+                "La boucle agent capture deja l'ecran et l'OCR avant chaque appel. "
+                "Si mission_longue.vision_analysis contient clickable_elements, utilise leurs coordonnees "
+                "pour les clics au lieu de deviner. Ne demande pas screenshot ni ocr comme action."
+            ),
             "consigne": "Retourne une seule action JSON conforme au schema strict.",
         },
         ensure_ascii=True,

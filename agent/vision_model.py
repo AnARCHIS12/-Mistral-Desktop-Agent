@@ -12,6 +12,9 @@ from config import Settings
 class VisionModel:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self.calls = 0
+        self.rate_limits = 0
+        self.usage: dict[str, int] = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
 
     async def analyze(self, image_path: Path, goal: str, ocr_text: str) -> dict[str, Any]:
         if not self.settings.enable_vision_model or not self.settings.mistral_api_key:
@@ -47,9 +50,12 @@ class VisionModel:
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(self.settings.mistral_api_url, headers=headers, json=payload)
             if response.status_code == 429:
+                self.rate_limits += 1
                 return {"ok": False, "rate_limited": True, "error": "vision model rate limited"}
             response.raise_for_status()
             data = response.json()
+            self.calls += 1
+            self._add_usage(data.get("usage") or {})
 
         content = data["choices"][0]["message"].get("content") or "{}"
         try:
@@ -61,8 +67,18 @@ class VisionModel:
         analysis["usage"] = data.get("usage", {})
         return analysis
 
+    def stats(self) -> dict[str, Any]:
+        return {"calls": self.calls, "rate_limits": self.rate_limits, "usage": self.usage}
+
     @staticmethod
     def _data_url(path: Path) -> str:
         import base64
 
         return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode("ascii")
+
+    def _add_usage(self, usage: dict[str, Any]) -> None:
+        for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+            try:
+                self.usage[key] += int(usage.get(key) or 0)
+            except (TypeError, ValueError):
+                pass

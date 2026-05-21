@@ -145,8 +145,12 @@ MISTRAL_API_KEY=ton_api_key
 MISTRAL_MODEL=mistral-large-latest
 MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20
 MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60
+MISTRAL_VISION_MODEL=pixtral-large-latest
+ENABLE_VISION_MODEL=false
+VISION_EVERY_STEPS=3
 TELEGRAM_BOT_TOKEN=ton_token_telegram
 ENABLE_TELEGRAM=true
+IMPORTANT_CAPTURE_DIR=data/captures
 SCREENSHOT_BACKEND=auto
 ```
 
@@ -177,20 +181,45 @@ Interface web: http://localhost:48723
 - `POST /resume`
 - `POST /stop`
 - `GET /status`
+- `GET /monitoring`
 - `GET /logs`
 - `GET /mission`
 - `GET /checkpoints`
+- `GET /captures`
 - `WS /ws`
 
 ## Missions longues
 
 L'agent garde maintenant un etat de mission persistant dans SQLite:
 
+- objectif courant
 - sous-taches extraites de l'objectif
+- etat courant et etape actuelle
+- actions reussies/ratees
+- erreurs
+- captures importantes
 - checkpoints apres les actions
 - pause/reprise
 - detection de stagnation visuelle
 - reprise plus lisible apres erreur ou limite API
+
+La page web affiche aussi un panneau `Supervision`:
+
+- temps ecoule
+- etape actuelle et prochaine sous-tache
+- derniere analyse vision si activee
+- captures importantes
+- appels Mistral, rate limits et usage API en tokens
+
+Pour ajouter l'analyse image Mistral en plus du screenshot + OCR:
+
+```env
+ENABLE_VISION_MODEL=true
+MISTRAL_VISION_MODEL=pixtral-large-latest
+VISION_EVERY_STEPS=3
+```
+
+Garde `ENABLE_VISION_MODEL=false` si tu veux limiter les appels API et eviter des couts supplementaires.
 
 Variables utiles:
 
@@ -198,6 +227,7 @@ Variables utiles:
 MAX_RUNTIME_SECONDS=7200
 MAX_STAGNANT_OBSERVATIONS=3
 CHECKPOINT_EVERY_STEPS=1
+IMPORTANT_CAPTURE_DIR=data/captures
 ```
 
 ## Telegram

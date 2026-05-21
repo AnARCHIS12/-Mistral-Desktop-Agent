@@ -51,6 +51,7 @@ class AgentLoop:
         self._started_monotonic: float | None = None
         self._current_step = 0
         self._last_vision_analysis: dict[str, Any] | None = None
+        self._next_plan = ""
 
     async def set_goal(self, goal: str) -> None:
         self.goal = goal.strip()
@@ -130,8 +131,10 @@ class AgentLoop:
             "max_steps": self.settings.max_steps,
             "stagnant_observations": self._stagnant_count,
             "planner": self.planner.stats(),
+            "vision_model": self.vision_model.stats(),
             "vision_analysis": self._last_vision_analysis,
             "next_subtask": self._mission.current_subtask if self._mission else None,
+            "next_plan": self._next_plan,
         }
 
     async def _run(self) -> None:
@@ -209,7 +212,7 @@ class AgentLoop:
                     if retries["planner:rate_limit"] >= self.settings.max_retries:
                         self.progress = "stopped: Mistral rate limit"
                         break
-                    await asyncio.sleep(exc.retry_after_seconds)
+                    await self._sleep_or_stop(exc.retry_after_seconds)
                     continue
                 except (PlannerError, Exception) as exc:
                     result = {"ok": False, "error": str(exc)}
@@ -220,10 +223,11 @@ class AgentLoop:
                     if retries[key] >= self.settings.max_retries:
                         self.progress = "stopped: too many planner errors"
                         break
-                    await asyncio.sleep(self.settings.loop_delay_seconds)
+                    await self._sleep_or_stop(self.settings.loop_delay_seconds)
                     continue
 
                 self.current_action = action
+                self._next_plan = str(action.get("reason") or action.get("tool") or "")
                 action_key = self._action_key(action)
                 repeated[action_key] += 1
                 if repeated[action_key] > self.settings.max_repeated_actions:
@@ -292,7 +296,7 @@ class AgentLoop:
                         self.progress = "stopped: too many execution errors"
                         break
 
-                await asyncio.sleep(self.settings.loop_delay_seconds)
+                await self._sleep_or_stop(self.settings.loop_delay_seconds)
             else:
                 self.progress = "stopped: max steps reached"
         except Exception as exc:
@@ -344,6 +348,7 @@ class AgentLoop:
             return None
         target = self.settings.important_capture_dir / f"mission_{self._mission_id or 0}_step_{step}_{signature}.png"
         try:
+            target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
         except OSError as exc:
             self.memory.add_error("capture", str(exc))
@@ -404,3 +409,11 @@ class AgentLoop:
             "contenant",
         )
         return any(token in goal for token in followup_tokens)
+
+    async def _sleep_or_stop(self, seconds: float) -> None:
+        if seconds <= 0:
+            return
+        try:
+            await asyncio.wait_for(self._stop_event.wait(), timeout=seconds)
+        except asyncio.TimeoutError:
+            return

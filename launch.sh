@@ -33,8 +33,10 @@ configure_env() {
   printf '\nConfiguration .env\n'
   read -r -p "MISTRAL_API_KEY: " mistral_key
   read -r -p "TELEGRAM_BOT_TOKEN optionnel: " telegram_token
+  read -r -p "Activer le modele vision Mistral ? [false]: " enable_vision
   read -r -p "Port web [48723]: " port
   port="${port:-48723}"
+  enable_vision="${enable_vision:-false}"
 
   local enable_telegram="false"
   if [[ -n "$telegram_token" ]]; then
@@ -47,12 +49,16 @@ MISTRAL_API_KEY=$mistral_key
 MISTRAL_MODEL=mistral-large-latest
 MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20
 MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60
+MISTRAL_VISION_MODEL=pixtral-large-latest
+ENABLE_VISION_MODEL=$enable_vision
+VISION_EVERY_STEPS=3
 TELEGRAM_BOT_TOKEN=$telegram_token
 ENABLE_TELEGRAM=$enable_telegram
 HOST=0.0.0.0
 PORT=$port
 DATABASE_PATH=data/agent_memory.sqlite3
 SCREENSHOT_PATH=data/latest_screenshot.png
+IMPORTANT_CAPTURE_DIR=data/captures
 SCREENSHOT_BACKEND=auto
 FILE_ACCESS_MODE=full
 ALLOWED_FILE_ROOTS=
