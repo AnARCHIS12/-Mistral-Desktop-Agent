@@ -27,8 +27,14 @@ Avant de lancer l'application, il faut d'abord recuperer le depot GitHub.
 Option simple avec Git:
 
 ```bash
-git clone https://github.com/AnARCHIS12/-Mistral-Desktop-Agent.git
-cd -Mistral-Desktop-Agent
+git clone https://github.com/AnARCHIS12/-Mistral-Desktop-Agent.git Mistral-Desktop-Agent
+cd Mistral-Desktop-Agent
+```
+
+Si tu as deja clone sans renommer et que le dossier s'appelle `-Mistral-Desktop-Agent`, entre dedans avec:
+
+```bash
+cd -- -Mistral-Desktop-Agent
 ```
 
 Option sans Git:
