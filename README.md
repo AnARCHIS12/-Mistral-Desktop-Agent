@@ -50,7 +50,7 @@ Windows:
 Double-clique `setup_windows.bat`, puis choisis:
 
 - `1` pour installer
-- `2` pour configurer `MISTRAL_API_KEY` et Telegram
+- `2` pour configurer `MISTRAL_API_KEY`, Telegram, Gmail, Slack, Discord, GitHub et Notion
 - `3` pour lancer
 
 Linux:
@@ -60,6 +60,8 @@ bash launch.sh
 ```
 
 L'option `1. Installer ou mettre a jour` installe aussi l'OCR par defaut quand c'est possible. Sur Fedora, le script lance:
+
+L'option `2. Configurer les cles API` propose aussi les connecteurs optionnels. Tu peux laisser vide ce que tu n'utilises pas.
 
 ```bash
 sudo dnf install -y tesseract

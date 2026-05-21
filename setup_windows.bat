@@ -93,10 +93,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$m=Read-Host 'MISTRAL_API_KEY';" ^
   "$t=Read-Host 'TELEGRAM_BOT_TOKEN optionnel';" ^
   "$v=Read-Host 'Activer le modele vision Mistral ? [true]'; if([string]::IsNullOrWhiteSpace($v)){$v='true'}; if($v -match '^(?i)(y|yes|oui|o|1|on)$'){$v='true'}; if($v -match '^(?i)(n|no|non|0|off)$'){$v='false'};" ^
+  "$slack=Read-Host 'Slack webhook URL optionnel';" ^
+  "$discord=Read-Host 'Discord webhook URL optionnel';" ^
+  "$ght=Read-Host 'GitHub token optionnel';" ^
+  "$ghr=Read-Host 'GitHub repo optionnel [owner/repo]';" ^
+  "$nt=Read-Host 'Notion token optionnel';" ^
+  "$np=Read-Host 'Notion parent page ID optionnel';" ^
+  "$gc=Read-Host 'Gmail credentials JSON [credentials/gmail_credentials.json]'; if([string]::IsNullOrWhiteSpace($gc)){$gc='credentials/gmail_credentials.json'};" ^
   "$p=Read-Host 'Port web [48723]'; if([string]::IsNullOrWhiteSpace($p)){$p='48723'};" ^
   "$e=if([string]::IsNullOrWhiteSpace($t)){'false'}else{'true'};" ^
   "$home=[Environment]::GetFolderPath('UserProfile');" ^
-  "$lines=@('MISTRAL_API_KEY='+$m,'MISTRAL_MODEL=mistral-large-latest','MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20','MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60','MISTRAL_VISION_MODEL=pixtral-large-latest','ENABLE_VISION_MODEL='+$v,'VISION_EVERY_STEPS=3','TELEGRAM_BOT_TOKEN='+$t,'ENABLE_TELEGRAM='+$e,'HOST=0.0.0.0','PORT='+$p,'DATABASE_PATH=data/agent_memory.sqlite3','SCREENSHOT_PATH=data/latest_screenshot.png','IMPORTANT_CAPTURE_DIR=data/captures','SCREENSHOT_BACKEND=auto','FILE_ACCESS_MODE=full','ALLOWED_FILE_ROOTS=','TERMINAL_WORKDIR='+$home,'SEARCH_ENGINE=duckduckgo','MAX_STEPS=50','MAX_RUNTIME_SECONDS=7200','MAX_RETRIES=3','LOOP_DELAY_SECONDS=1.0','MAX_REPEATED_ACTIONS=3','MAX_STAGNANT_OBSERVATIONS=3','CHECKPOINT_EVERY_STEPS=1','TERMINAL_TIMEOUT_SECONDS=30','BROWSER_HEADLESS=false','GMAIL_CREDENTIALS_FILE=credentials/gmail_credentials.json','GMAIL_TOKEN_FILE=credentials/gmail_token.json','GMAIL_SCOPE=https://www.googleapis.com/auth/gmail.modify','GMAIL_ENABLE_MODIFY=true','GMAIL_ALLOW_ARCHIVE=true','GMAIL_ALLOW_SEND=true','GMAIL_ALLOW_DELETE=true','SLACK_WEBHOOK_URL=','DISCORD_WEBHOOK_URL=','GITHUB_TOKEN=','GITHUB_REPO=','NOTION_TOKEN=','NOTION_PARENT_PAGE_ID=','CONNECTOR_TIMEOUT_SECONDS=30');" ^
+  "$lines=@('MISTRAL_API_KEY='+$m,'MISTRAL_MODEL=mistral-large-latest','MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20','MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60','MISTRAL_VISION_MODEL=pixtral-large-latest','ENABLE_VISION_MODEL='+$v,'VISION_EVERY_STEPS=3','TELEGRAM_BOT_TOKEN='+$t,'ENABLE_TELEGRAM='+$e,'HOST=0.0.0.0','PORT='+$p,'DATABASE_PATH=data/agent_memory.sqlite3','SCREENSHOT_PATH=data/latest_screenshot.png','IMPORTANT_CAPTURE_DIR=data/captures','SCREENSHOT_BACKEND=auto','FILE_ACCESS_MODE=full','ALLOWED_FILE_ROOTS=','TERMINAL_WORKDIR='+$home,'SEARCH_ENGINE=duckduckgo','MAX_STEPS=50','MAX_RUNTIME_SECONDS=7200','MAX_RETRIES=3','LOOP_DELAY_SECONDS=1.0','MAX_REPEATED_ACTIONS=3','MAX_STAGNANT_OBSERVATIONS=3','CHECKPOINT_EVERY_STEPS=1','TERMINAL_TIMEOUT_SECONDS=30','BROWSER_HEADLESS=false','GMAIL_CREDENTIALS_FILE='+$gc,'GMAIL_TOKEN_FILE=credentials/gmail_token.json','GMAIL_SCOPE=https://www.googleapis.com/auth/gmail.modify','GMAIL_ENABLE_MODIFY=true','GMAIL_ALLOW_ARCHIVE=true','GMAIL_ALLOW_SEND=true','GMAIL_ALLOW_DELETE=true','SLACK_WEBHOOK_URL='+$slack,'DISCORD_WEBHOOK_URL='+$discord,'GITHUB_TOKEN='+$ght,'GITHUB_REPO='+$ghr,'NOTION_TOKEN='+$nt,'NOTION_PARENT_PAGE_ID='+$np,'CONNECTOR_TIMEOUT_SECONDS=30');" ^
   "Set-Content -Path '.env' -Value $lines -Encoding UTF8"
 exit /b %errorlevel%
 
