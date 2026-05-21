@@ -47,6 +47,22 @@ class Settings(BaseSettings):
     terminal_timeout_seconds: int = Field(default=30, alias="TERMINAL_TIMEOUT_SECONDS")
     browser_headless: bool = Field(default=False, alias="BROWSER_HEADLESS")
 
+    gmail_credentials_file: Path = Field(default=Path("credentials/gmail_credentials.json"), alias="GMAIL_CREDENTIALS_FILE")
+    gmail_token_file: Path = Field(default=Path("credentials/gmail_token.json"), alias="GMAIL_TOKEN_FILE")
+    gmail_scope: str = Field(default="https://www.googleapis.com/auth/gmail.modify", alias="GMAIL_SCOPE")
+    gmail_enable_modify: bool = Field(default=True, alias="GMAIL_ENABLE_MODIFY")
+    gmail_allow_archive: bool = Field(default=True, alias="GMAIL_ALLOW_ARCHIVE")
+    gmail_allow_send: bool = Field(default=True, alias="GMAIL_ALLOW_SEND")
+    gmail_allow_delete: bool = Field(default=True, alias="GMAIL_ALLOW_DELETE")
+
+    slack_webhook_url: Optional[str] = Field(default=None, alias="SLACK_WEBHOOK_URL")
+    discord_webhook_url: Optional[str] = Field(default=None, alias="DISCORD_WEBHOOK_URL")
+    github_token: Optional[str] = Field(default=None, alias="GITHUB_TOKEN")
+    github_repo: Optional[str] = Field(default=None, alias="GITHUB_REPO")
+    notion_token: Optional[str] = Field(default=None, alias="NOTION_TOKEN")
+    notion_parent_page_id: Optional[str] = Field(default=None, alias="NOTION_PARENT_PAGE_ID")
+    connector_timeout_seconds: int = Field(default=30, alias="CONNECTOR_TIMEOUT_SECONDS")
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
@@ -56,4 +72,6 @@ def get_settings() -> Settings:
     settings.database_path.parent.mkdir(parents=True, exist_ok=True)
     settings.screenshot_path.parent.mkdir(parents=True, exist_ok=True)
     settings.important_capture_dir.mkdir(parents=True, exist_ok=True)
+    settings.gmail_credentials_file.parent.mkdir(parents=True, exist_ok=True)
+    settings.gmail_token_file.parent.mkdir(parents=True, exist_ok=True)
     return settings

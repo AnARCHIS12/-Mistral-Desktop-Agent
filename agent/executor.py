@@ -6,6 +6,8 @@ from typing import Any, Callable
 
 from config import Settings
 from tools.browser import BrowserTools
+from tools.connectors import ExternalConnectors
+from tools.gmail import GmailTools
 from tools.input import InputTools
 from tools.system import SystemTools
 from tools.vision import VisionTools
@@ -20,6 +22,8 @@ class ActionExecutor:
         self.input = InputTools()
         self.vision = VisionTools(settings)
         self.browser = BrowserTools(settings)
+        self.gmail = GmailTools(settings)
+        self.connectors = ExternalConnectors(settings)
         self.tools: dict[str, ToolCallable] = {
             "open_app": self.system.open_app,
             "run_terminal": self.system.run_terminal,
@@ -33,6 +37,21 @@ class ActionExecutor:
             "ocr": self.vision.ocr,
             "open_url": self.browser.open_url,
             "search": self.browser.search,
+            "gmail_auth_status": self.gmail.auth_status,
+            "gmail_list_recent": self.gmail.list_recent,
+            "gmail_ensure_label": self.gmail.ensure_label,
+            "gmail_apply_label": self.gmail.apply_label,
+            "gmail_archive": self.gmail.archive,
+            "gmail_send_email": self.gmail.send_email,
+            "gmail_trash": self.gmail.trash,
+            "connectors_status": self.connectors.status,
+            "slack_send_message": self.connectors.slack_send_message,
+            "discord_send_message": self.connectors.discord_send_message,
+            "github_create_issue": self.connectors.github_create_issue,
+            "github_list_issues": self.connectors.github_list_issues,
+            "notion_create_page": self.connectors.notion_create_page,
+            "http_get": self.connectors.http_get,
+            "http_post_json": self.connectors.http_post_json,
         }
 
     async def execute(self, action: dict[str, Any]) -> dict[str, Any]:

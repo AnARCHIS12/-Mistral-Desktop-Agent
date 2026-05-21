@@ -152,6 +152,20 @@ TELEGRAM_BOT_TOKEN=ton_token_telegram
 ENABLE_TELEGRAM=true
 IMPORTANT_CAPTURE_DIR=data/captures
 SCREENSHOT_BACKEND=auto
+GMAIL_CREDENTIALS_FILE=credentials/gmail_credentials.json
+GMAIL_TOKEN_FILE=credentials/gmail_token.json
+GMAIL_SCOPE=https://www.googleapis.com/auth/gmail.modify
+GMAIL_ENABLE_MODIFY=true
+GMAIL_ALLOW_ARCHIVE=true
+GMAIL_ALLOW_SEND=true
+GMAIL_ALLOW_DELETE=true
+SLACK_WEBHOOK_URL=
+DISCORD_WEBHOOK_URL=
+GITHUB_TOKEN=
+GITHUB_REPO=owner/repo
+NOTION_TOKEN=
+NOTION_PARENT_PAGE_ID=
+CONNECTOR_TIMEOUT_SECONDS=30
 ```
 
 `TELEGRAM_BOT_TOKEN` est optionnel. Sans token, le serveur web et l'API fonctionnent normalement.
@@ -164,6 +178,55 @@ MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=90
 ```
 
 La boucle observe deja l'ecran et l'OCR a chaque etape. Le planner Mistral ne recoit donc plus `screenshot` et `ocr` comme outils a appeler, ce qui reduit les appels inutiles.
+
+## Gmail
+
+Le connecteur Gmail evite de piloter l'interface a la souris. Il peut lister les mails, creer un libelle, appliquer un libelle, archiver si autorise, puis creer un rapport.
+
+1. Dans Google Cloud, cree un client OAuth `Desktop app`.
+2. Telecharge le JSON OAuth.
+3. Place-le ici: `credentials/gmail_credentials.json`.
+4. Relance l'agent et demande une tache Gmail. Au premier appel, le navigateur ouvrira la page d'autorisation Google.
+
+Outils disponibles pour l'agent:
+
+- `gmail_auth_status`
+- `gmail_list_recent`
+- `gmail_ensure_label`
+- `gmail_apply_label`
+- `gmail_archive`
+- `gmail_send_email` si `GMAIL_ALLOW_SEND=true`
+- `gmail_trash` si `GMAIL_ALLOW_DELETE=true`
+
+Par defaut, l'agent peut lire, modifier les libelles, archiver, envoyer et mettre des mails a la corbeille avec `gmail.modify`.
+
+## Autres connecteurs
+
+L'agent inclut aussi des connecteurs directs sans piloter le navigateur:
+
+- Slack: `slack_send_message`
+- Discord: `discord_send_message`
+- GitHub: `github_create_issue`, `github_list_issues`
+- Notion: `notion_create_page`
+- HTTP generique: `http_get`, `http_post_json`
+- Diagnostic: `connectors_status`
+
+Configuration minimale:
+
+```env
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+GITHUB_TOKEN=github_pat_...
+GITHUB_REPO=owner/repo
+NOTION_TOKEN=secret_...
+NOTION_PARENT_PAGE_ID=id_page_notion
+```
+
+Exemple:
+
+```text
+Utilise les connecteurs. Verifie connectors_status, cree une issue GitHub "Test agent" avec un resume, envoie le meme resume sur Discord, puis cree /home/anar/Bureau/rapport_connecteurs.txt avec les resultats.
+```
 
 ## Lancement
 
