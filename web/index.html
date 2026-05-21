@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mistral Desktop Agent</title>
+    <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="control">
+        <div class="title-row">
+          <div class="brand">
+            <img src="/assets/logo.svg" alt="" />
+            <div>
+              <h1>Mistral Desktop Agent</h1>
+              <p id="status">idle</p>
+            </div>
+          </div>
+          <div class="buttons">
+            <button id="startBtn">Start</button>
+            <button id="stopBtn" class="secondary">Stop</button>
+          </div>
+        </div>
+        <label for="goal">Objectif</label>
+        <textarea id="goal" rows="3" placeholder="ouvre Firefox et cherche Bakounine"></textarea>
+        <button id="goalBtn" class="wide">Definir l'objectif</button>
+      </section>
+
+      <section class="grid">
+        <div class="panel screen-panel">
+          <div class="panel-head">
+            <h2>Ecran</h2>
+            <span id="progress">En attente</span>
+          </div>
+          <div id="screenPlaceholder" class="screen-placeholder">Aucune capture pour le moment</div>
+          <img id="screen" alt="Capture d'ecran" hidden />
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Action actuelle</h2>
+          </div>
+          <pre id="action">{}</pre>
+        </div>
+
+        <div class="panel logs">
+          <div class="panel-head">
+            <h2>Logs live</h2>
+          </div>
+          <div id="logs"></div>
+        </div>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

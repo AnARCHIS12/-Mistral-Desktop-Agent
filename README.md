@@ -1,0 +1,195 @@
+# Mistral Desktop Agent
+
+<p align="center">
+  <img src="web/assets/logo.svg" alt="Mistral Desktop Agent logo" width="140" />
+</p>
+
+<p align="center">
+  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-backend-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
+  <img alt="Mistral AI" src="https://img.shields.io/badge/Mistral-AI-FF7000?style=for-the-badge" />
+  <img alt="Playwright" src="https://img.shields.io/badge/Playwright-browser-2EAD33?style=for-the-badge&logo=playwright&logoColor=white" />
+  <img alt="Telegram" src="https://img.shields.io/badge/Telegram-bot-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" />
+</p>
+
+Agent autonome de controle ordinateur avec FastAPI, WebSocket, Mistral, pyautogui, screenshots OCR, Playwright, SQLite et Telegram.
+
+Site de presentation GitHub Pages: https://anarchis12.github.io/-Mistral-Desktop-Agent/
+
+Pour publier la page: GitHub > `Settings` > `Pages` > source `Deploy from a branch`, dossier `/docs`.
+
+## Installation
+
+## Debutants
+
+Avant de lancer l'application, il faut d'abord recuperer le depot GitHub.
+
+Option simple avec Git:
+
+```bash
+git clone https://github.com/AnARCHIS12/-Mistral-Desktop-Agent.git
+cd -Mistral-Desktop-Agent
+```
+
+Option sans Git:
+
+1. Ouvre https://github.com/AnARCHIS12/-Mistral-Desktop-Agent
+2. Clique `Code`
+3. Clique `Download ZIP`
+4. Decompresse le fichier ZIP
+5. Ouvre le dossier decompresse
+
+Windows:
+
+Double-clique `setup_windows.bat`, puis choisis:
+
+- `1` pour installer
+- `2` pour configurer `MISTRAL_API_KEY` et Telegram
+- `3` pour lancer
+
+Linux:
+
+```bash
+bash launch.sh
+```
+
+Pour creer un raccourci dans le menu des applications:
+
+```bash
+bash create_desktop_launcher.sh
+```
+
+Tu peux aussi double-cliquer `Mistral Desktop Agent.desktop` si ton environnement Linux autorise les lanceurs locaux.
+
+Exemple d'objectif:
+
+```text
+ouvre Firefox et cherche Bakounine
+```
+
+
+## Expert 
+
+Installation en une commande avec `curl` depuis GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AnARCHIS12/-Mistral-Desktop-Agent/main/bootstrap.sh | bash
+```
+
+Avec configuration non interactive:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AnARCHIS12/-Mistral-Desktop-Agent/main/bootstrap.sh | \
+  MISTRAL_API_KEY=ton_api_key TELEGRAM_BOT_TOKEN=ton_token bash -s -- --yes
+```
+
+Choisir le dossier et le port:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AnARCHIS12/-Mistral-Desktop-Agent/main/bootstrap.sh | \
+  bash -s -- --dir "$HOME/.local/share/mistral-agent" -- --port 8001
+```
+
+Installation automatique:
+
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+Installation automatique avec lancement direct:
+
+```bash
+./install.sh --run
+```
+
+Mode non interactif:
+
+```bash
+MISTRAL_API_KEY=ton_api_key TELEGRAM_BOT_TOKEN=ton_token ./install.sh --yes
+```
+
+Installation manuelle:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python -m playwright install chromium
+```
+
+Installe aussi Tesseract OCR sur le systeme:
+
+```bash
+sudo apt-get install tesseract-ocr
+```
+
+## Configuration
+
+Cree un fichier `.env`:
+
+```env
+MISTRAL_API_KEY=ton_api_key
+MISTRAL_MODEL=mistral-large-latest
+TELEGRAM_BOT_TOKEN=ton_token_telegram
+ENABLE_TELEGRAM=true
+```
+
+`TELEGRAM_BOT_TOKEN` est optionnel. Sans token, le serveur web et l'API fonctionnent normalement.
+
+## Lancement
+
+```bash
+python main.py
+```
+
+Interface web: http://localhost:48723
+
+## API
+
+- `POST /goal` avec `{ "goal": "..." }`
+- `POST /start`
+- `POST /stop`
+- `GET /status`
+- `GET /logs`
+- `WS /ws`
+
+## Telegram
+
+Commandes disponibles:
+
+- `/start`
+- `/stop`
+- `/goal <texte>`
+- `/status`
+
+## Securité
+
+Par defaut, l'agent peut acceder a tout l'ordinateur local selon les permissions du compte qui lance l'application:
+
+```env
+FILE_ACCESS_MODE=full
+ALLOWED_FILE_ROOTS=
+TERMINAL_WORKDIR=/home/ton_user
+```
+
+Cela veut dire:
+
+- chemins absolus autorises dans `read_file` et `write_file`
+- chemins relatifs resolus depuis `TERMINAL_WORKDIR`
+- commandes terminal lancees depuis `TERMINAL_WORKDIR`
+- acces reel limite par les permissions du systeme d'exploitation
+
+Pour revenir a un mode limite au dossier du projet:
+
+```env
+FILE_ACCESS_MODE=workspace
+```
+
+Pour limiter a certains dossiers seulement, garde `FILE_ACCESS_MODE=full` et separe les chemins par `:` sous Linux/macOS:
+
+```env
+ALLOWED_FILE_ROOTS=/home/ton_user:/tmp
+```
+
+Les commandes terminal destructrices courantes restent bloquees, les erreurs sont limitees a 3 retries, les actions repetees declenchent un arret, et la boucle s'arrete apres `MAX_STEPS`.

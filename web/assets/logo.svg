@@ -1,0 +1,25 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Mistral Desktop Agent logo</title>
+  <desc id="desc">A Mistral-inspired angular mark inside a chat bubble for an autonomous desktop agent.</desc>
+  <rect width="512" height="512" rx="92" fill="#101317"/>
+  <path d="M96 122C96 101.013 113.013 84 134 84H378C398.987 84 416 101.013 416 122V288C416 308.987 398.987 326 378 326H284L221 382C212.723 389.356 199.58 383.481 199.58 372.403V326H134C113.013 326 96 308.987 96 288V122Z" fill="#F7F1E8"/>
+  <path d="M96 122C96 101.013 113.013 84 134 84H378C398.987 84 416 101.013 416 122V288C416 308.987 398.987 326 378 326H284L221 382C212.723 389.356 199.58 383.481 199.58 372.403V326H134C113.013 326 96 308.987 96 288V122Z" stroke="#111418" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M151 148H197V193H151V148Z" fill="#FFB000"/>
+  <path d="M197 148H243V193H197V148Z" fill="#FF7A1A"/>
+  <path d="M269 148H315V193H269V148Z" fill="#2A9D8F"/>
+  <path d="M315 148H361V193H315V148Z" fill="#2F5DA8"/>
+  <path d="M151 193H197V238H151V193Z" fill="#FFCF4D"/>
+  <path d="M197 193H243V238H197V193Z" fill="#111418"/>
+  <path d="M243 193H269V238H243V193Z" fill="#111418"/>
+  <path d="M269 193H315V238H269V193Z" fill="#111418"/>
+  <path d="M315 193H361V238H315V193Z" fill="#5DB7DE"/>
+  <path d="M151 238H197V283H151V238Z" fill="#FFE08A"/>
+  <path d="M197 238H243V283H197V238Z" fill="#111418"/>
+  <path d="M243 238H269V283H243V238Z" fill="#111418"/>
+  <path d="M269 238H315V283H269V238Z" fill="#111418"/>
+  <path d="M315 238H361V283H315V238Z" fill="#88D4C3"/>
+  <path d="M197 148L256 238L315 148H269L256 168L243 148H197Z" fill="#111418"/>
+  <circle cx="176" cy="414" r="16" fill="#FFB000"/>
+  <circle cx="256" cy="414" r="16" fill="#F7F1E8"/>
+  <circle cx="336" cy="414" r="16" fill="#2A9D8F"/>
+</svg>

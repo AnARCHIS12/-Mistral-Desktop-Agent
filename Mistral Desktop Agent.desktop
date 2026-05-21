@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Mistral Desktop Agent
+Comment=Configurer et lancer l'agent autonome Mistral
+Exec=sh -c 'cd "$(dirname "$1")" && bash launch.sh' launcher %k
+Terminal=true
+Categories=Utility;Development;
+StartupNotify=true

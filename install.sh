@@ -1,0 +1,292 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+APP_NAME="Mistral Desktop Agent"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="${VENV_DIR:-$PROJECT_DIR/.venv}"
+PYTHON_BIN="${PYTHON_BIN:-}"
+PORT="${PORT:-48723}"
+HOST="${HOST:-0.0.0.0}"
+MISTRAL_MODEL="${MISTRAL_MODEL:-mistral-large-latest}"
+INSTALL_PLAYWRIGHT=1
+WRITE_ENV=1
+RUN_SERVER=0
+ASSUME_YES=0
+
+bold="$(printf '\033[1m')"
+green="$(printf '\033[32m')"
+yellow="$(printf '\033[33m')"
+red="$(printf '\033[31m')"
+reset="$(printf '\033[0m')"
+
+usage() {
+  cat <<EOF
+$APP_NAME installer
+
+Usage:
+  ./install.sh [options]
+
+Options:
+  -y, --yes              Mode non interactif, accepte les valeurs par defaut
+  --no-env               Ne pas creer/modifier .env
+  --skip-playwright      Ne pas installer Chromium Playwright
+  --run                  Lancer le serveur apres installation
+  --host <host>          Host FastAPI (defaut: $HOST)
+  --port <port>          Port FastAPI (defaut: $PORT)
+  --python <path>        Python a utiliser (doit etre >= 3.11)
+  -h, --help             Afficher cette aide
+
+Variables utiles:
+  MISTRAL_API_KEY, TELEGRAM_BOT_TOKEN, ENABLE_TELEGRAM, PYTHON_BIN, VENV_DIR
+EOF
+}
+
+log() {
+  printf '%s\n' "${green}==>${reset} $*"
+}
+
+warn() {
+  printf '%s\n' "${yellow}Warning:${reset} $*"
+}
+
+fail() {
+  printf '%s\n' "${red}Error:${reset} $*" >&2
+  exit 1
+}
+
+confirm() {
+  local prompt="$1"
+  if [[ "$ASSUME_YES" -eq 1 ]]; then
+    return 0
+  fi
+  read -r -p "$prompt [Y/n] " answer
+  case "${answer:-Y}" in
+    y|Y|yes|YES|Yes) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+prompt_secret() {
+  local label="$1"
+  local default="${2:-}"
+  local value=""
+  if [[ "$ASSUME_YES" -eq 1 ]]; then
+    printf '%s' "$default"
+    return 0
+  fi
+  read -r -s -p "$label" value
+  printf '\n' >&2
+  printf '%s' "${value:-$default}"
+}
+
+prompt_text() {
+  local label="$1"
+  local default="${2:-}"
+  local value=""
+  if [[ "$ASSUME_YES" -eq 1 ]]; then
+    printf '%s' "$default"
+    return 0
+  fi
+  read -r -p "$label" value
+  printf '%s' "${value:-$default}"
+}
+
+version_ge_311() {
+  "$1" - <<'PY'
+import sys
+raise SystemExit(0 if sys.version_info >= (3, 11) else 1)
+PY
+}
+
+find_python() {
+  if [[ -n "$PYTHON_BIN" ]]; then
+    command -v "$PYTHON_BIN" >/dev/null 2>&1 || fail "Python introuvable: $PYTHON_BIN"
+    version_ge_311 "$PYTHON_BIN" || fail "$PYTHON_BIN doit etre en version 3.11+"
+    printf '%s' "$PYTHON_BIN"
+    return 0
+  fi
+
+  local candidate
+  for candidate in python3.13 python3.12 python3.11 python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1 && version_ge_311 "$candidate"; then
+      command -v "$candidate"
+      return 0
+    fi
+  done
+  fail "Python 3.11+ est requis. Installe python3.11, python3.12 ou python3.13."
+}
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -y|--yes)
+        ASSUME_YES=1
+        shift
+        ;;
+      --no-env)
+        WRITE_ENV=0
+        shift
+        ;;
+      --skip-playwright)
+        INSTALL_PLAYWRIGHT=0
+        shift
+        ;;
+      --run)
+        RUN_SERVER=1
+        shift
+        ;;
+      --host)
+        HOST="${2:-}"
+        [[ -n "$HOST" ]] || fail "--host attend une valeur"
+        shift 2
+        ;;
+      --port)
+        PORT="${2:-}"
+        [[ -n "$PORT" ]] || fail "--port attend une valeur"
+        shift 2
+        ;;
+      --python)
+        PYTHON_BIN="${2:-}"
+        [[ -n "$PYTHON_BIN" ]] || fail "--python attend une valeur"
+        shift 2
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        fail "Option inconnue: $1"
+        ;;
+    esac
+  done
+}
+
+create_env_file() {
+  local env_file="$PROJECT_DIR/.env"
+  if [[ "$WRITE_ENV" -eq 0 ]]; then
+    log "Configuration .env ignoree"
+    return 0
+  fi
+
+  if [[ -f "$env_file" ]] && ! confirm ".env existe deja. Le mettre a jour ?"; then
+    log ".env conserve tel quel"
+    return 0
+  fi
+
+  local mistral_key="${MISTRAL_API_KEY:-}"
+  local telegram_token="${TELEGRAM_BOT_TOKEN:-}"
+  local enable_telegram="${ENABLE_TELEGRAM:-true}"
+
+  if [[ -z "$mistral_key" ]]; then
+    mistral_key="$(prompt_secret "Cle MISTRAL_API_KEY (laisser vide pour plus tard): ")"
+  fi
+  if [[ -z "$telegram_token" ]]; then
+    telegram_token="$(prompt_secret "Token TELEGRAM_BOT_TOKEN optionnel (laisser vide pour desactiver): ")"
+  fi
+  if [[ -z "$telegram_token" ]]; then
+    enable_telegram="false"
+  else
+    enable_telegram="$(prompt_text "Activer Telegram ? [true/false] (${enable_telegram}): " "$enable_telegram")"
+  fi
+
+  umask 077
+  cat > "$env_file" <<EOF
+MISTRAL_API_KEY=$mistral_key
+MISTRAL_MODEL=$MISTRAL_MODEL
+TELEGRAM_BOT_TOKEN=$telegram_token
+ENABLE_TELEGRAM=$enable_telegram
+HOST=$HOST
+PORT=$PORT
+DATABASE_PATH=data/agent_memory.sqlite3
+SCREENSHOT_PATH=data/latest_screenshot.png
+FILE_ACCESS_MODE=full
+ALLOWED_FILE_ROOTS=
+TERMINAL_WORKDIR=$HOME
+MAX_STEPS=50
+MAX_RETRIES=3
+LOOP_DELAY_SECONDS=1.0
+MAX_REPEATED_ACTIONS=3
+TERMINAL_TIMEOUT_SECONDS=30
+BROWSER_HEADLESS=false
+EOF
+  log ".env configure"
+}
+
+check_system_tools() {
+  if ! command -v tesseract >/dev/null 2>&1; then
+    warn "Tesseract OCR n'est pas installe. OCR indisponible tant que tesseract-ocr manque."
+    if command -v apt-get >/dev/null 2>&1; then
+      warn "Commande suggeree: sudo apt-get install tesseract-ocr"
+    elif command -v dnf >/dev/null 2>&1; then
+      warn "Commande suggeree: sudo dnf install tesseract"
+    elif command -v pacman >/dev/null 2>&1; then
+      warn "Commande suggeree: sudo pacman -S tesseract"
+    fi
+  else
+    log "Tesseract detecte: $(tesseract --version | head -n 1)"
+  fi
+}
+
+install_python_deps() {
+  local python="$1"
+  log "Python detecte: $("$python" --version)"
+  log "Creation/mise a jour du venv: $VENV_DIR"
+  "$python" -m venv "$VENV_DIR"
+  "$VENV_DIR/bin/python" -m pip install --upgrade pip
+  "$VENV_DIR/bin/pip" install -r "$PROJECT_DIR/requirements.txt"
+}
+
+install_playwright() {
+  if [[ "$INSTALL_PLAYWRIGHT" -eq 0 ]]; then
+    log "Installation Playwright ignoree"
+    return 0
+  fi
+  log "Installation de Chromium pour Playwright"
+  "$VENV_DIR/bin/python" -m playwright install chromium
+}
+
+verify_app() {
+  log "Verification des imports applicatifs"
+  (
+    cd "$PROJECT_DIR"
+    ENABLE_TELEGRAM=false MISTRAL_API_KEY="${MISTRAL_API_KEY:-dummy}" "$VENV_DIR/bin/python" - <<'PY'
+from main import app
+print(app.title)
+PY
+  )
+}
+
+run_server() {
+  if [[ "$RUN_SERVER" -eq 0 ]]; then
+    return 0
+  fi
+  log "Lancement du serveur sur http://127.0.0.1:$PORT"
+  cd "$PROJECT_DIR"
+  exec "$VENV_DIR/bin/python" main.py
+}
+
+main() {
+  parse_args "$@"
+  printf '%s\n' "${bold}$APP_NAME${reset}"
+  printf '%s\n' "Projet: $PROJECT_DIR"
+
+  local python
+  python="$(find_python)"
+
+  mkdir -p "$PROJECT_DIR/data"
+  install_python_deps "$python"
+  install_playwright
+  create_env_file
+  check_system_tools
+  verify_app
+
+  log "Installation terminee"
+  printf '\n%s\n' "Commandes utiles:"
+  printf '  %s\n' "source .venv/bin/activate"
+  printf '  %s\n' "python main.py"
+  printf '  %s\n' "ouvrir http://127.0.0.1:$PORT"
+
+  run_server
+}
+
+main "$@"

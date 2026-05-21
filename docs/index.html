@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mistral Desktop Agent</title>
+    <meta
+      name="description"
+      content="Agent autonome local base sur Mistral, FastAPI, WebSocket, pyautogui, OCR, Playwright, SQLite et Telegram."
+    />
+    <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <nav>
+        <a class="brand" href="#top" aria-label="Mistral Desktop Agent">
+          <img src="assets/logo.svg" alt="" />
+          <span>Mistral Desktop Agent</span>
+        </a>
+        <div class="nav-links">
+          <a href="#install">Installer</a>
+          <a href="#features">Fonctions</a>
+          <a href="#architecture">Architecture</a>
+          <a href="https://github.com/AnARCHIS12/-Mistral-Desktop-Agent">GitHub</a>
+        </div>
+      </nav>
+
+      <section id="top" class="hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">Agent IA local pour ordinateur</p>
+          <h1>Mistral Desktop Agent</h1>
+          <p class="lead">
+            Une application autonome qui observe l'ecran, planifie avec Mistral, execute des actions locales et diffuse son etat en temps reel.
+          </p>
+          <div class="actions">
+            <a class="primary" href="#install">Installer</a>
+            <a class="secondary" href="https://github.com/AnARCHIS12/-Mistral-Desktop-Agent">Voir le code</a>
+          </div>
+        </div>
+        <div class="agent-preview" aria-label="Apercu de l'interface">
+          <div class="window-bar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="preview-content">
+            <img src="assets/logo.svg" alt="" />
+            <div>
+              <strong>Objectif</strong>
+              <p>ouvre Firefox et cherche Bakounine</p>
+            </div>
+          </div>
+          <div class="preview-log">
+            <p>Observation ecran + OCR</p>
+            <p>Action Mistral JSON</p>
+            <p>Execution locale securisee</p>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <main>
+      <section id="install" class="section">
+        <div class="section-head">
+          <p class="eyebrow">Installation</p>
+          <h2>Demarrage rapide</h2>
+        </div>
+        <div class="cards">
+          <article>
+            <h3>Debutants</h3>
+            <p>Clone le depot ou telecharge le ZIP, puis lance le menu adapte a ton systeme.</p>
+            <pre><code>git clone https://github.com/AnARCHIS12/-Mistral-Desktop-Agent.git
+cd -Mistral-Desktop-Agent</code></pre>
+          </article>
+          <article>
+            <h3>Windows</h3>
+            <p>Double-clique le fichier de menu.</p>
+            <pre><code>setup_windows.bat</code></pre>
+          </article>
+          <article>
+            <h3>Linux</h3>
+            <p>Lance le menu ou cree un raccourci bureau.</p>
+            <pre><code>bash launch.sh
+bash create_desktop_launcher.sh</code></pre>
+          </article>
+          <article>
+            <h3>Expert</h3>
+            <p>Installation directe depuis GitHub avec curl.</p>
+            <pre><code>curl -fsSL https://raw.githubusercontent.com/AnARCHIS12/-Mistral-Desktop-Agent/main/bootstrap.sh | bash</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <section id="features" class="section band">
+        <div class="section-head">
+          <p class="eyebrow">Fonctions</p>
+          <h2>Controle agentique complet</h2>
+        </div>
+        <div class="feature-grid">
+          <div>
+            <h3>Interface web</h3>
+            <p>Objectif, start/stop, logs live, action courante et capture ecran en temps reel.</p>
+          </div>
+          <div>
+            <h3>Boucle autonome</h3>
+            <p>Screenshot, OCR, prompt Mistral, action JSON stricte, execution, memoire SQLite.</p>
+          </div>
+          <div>
+            <h3>Outils locaux</h3>
+            <p>Terminal, fichiers, souris, clavier, navigateur Playwright et vision ecran.</p>
+          </div>
+          <div>
+            <h3>Telegram</h3>
+            <p>Commandes /goal, /start, /stop et /status pour piloter l'agent a distance.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="architecture" class="section">
+        <div class="section-head">
+          <p class="eyebrow">Architecture</p>
+          <h2>Modulaire et extensible</h2>
+        </div>
+        <div class="architecture">
+          <code>FastAPI</code>
+          <span></span>
+          <code>WebSocket</code>
+          <span></span>
+          <code>Mistral Planner</code>
+          <span></span>
+          <code>Executor</code>
+          <span></span>
+          <code>Tools</code>
+          <span></span>
+          <code>SQLite Memory</code>
+        </div>
+      </section>
+
+      <section class="section safety">
+        <div>
+          <p class="eyebrow">Port par defaut</p>
+          <h2>Interface locale sur 48723</h2>
+          <p>L'application web se lance sur <code>http://localhost:48723</code> par defaut.</p>
+        </div>
+        <div>
+          <p class="eyebrow">Acces local</p>
+          <h2>Controle de l'ordinateur hote</h2>
+          <p>L'agent agit sur la machine ou il est lance. Les commandes destructrices courantes restent bloquees.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>Mistral Desktop Agent</span>
+      <a href="https://github.com/AnARCHIS12/-Mistral-Desktop-Agent">GitHub</a>
+    </footer>
+  </body>
+</html>

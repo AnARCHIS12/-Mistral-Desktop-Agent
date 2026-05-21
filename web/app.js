@@ -1,0 +1,94 @@
+const goalInput = document.querySelector("#goal");
+const goalBtn = document.querySelector("#goalBtn");
+const startBtn = document.querySelector("#startBtn");
+const stopBtn = document.querySelector("#stopBtn");
+const statusEl = document.querySelector("#status");
+const progressEl = document.querySelector("#progress");
+const actionEl = document.querySelector("#action");
+const logsEl = document.querySelector("#logs");
+const screenEl = document.querySelector("#screen");
+const screenPlaceholder = document.querySelector("#screenPlaceholder");
+
+function addLog(message) {
+  const row = document.createElement("div");
+  row.className = "log";
+  row.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  logsEl.prepend(row);
+}
+
+async function post(path, body) {
+  const response = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return response.json();
+}
+
+async function refreshStatus() {
+  const status = await fetch("/status").then((response) => response.json());
+  renderStatus(status);
+}
+
+function renderStatus(status) {
+  statusEl.textContent = status.running ? "running" : "stopped";
+  progressEl.textContent = status.progress || "idle";
+  if (status.goal && !goalInput.value) {
+    goalInput.value = status.goal;
+  }
+  if (status.current_action) {
+    actionEl.textContent = JSON.stringify(status.current_action, null, 2);
+  }
+}
+
+goalBtn.addEventListener("click", async () => {
+  const goal = goalInput.value.trim();
+  if (!goal) return;
+  await post("/goal", { goal });
+  addLog(`Objectif defini: ${goal}`);
+  await refreshStatus();
+});
+
+startBtn.addEventListener("click", async () => {
+  await post("/start");
+  addLog("Agent demarre");
+  await refreshStatus();
+});
+
+stopBtn.addEventListener("click", async () => {
+  await post("/stop");
+  addLog("Agent arrete");
+  await refreshStatus();
+});
+
+function connectWebSocket() {
+  const protocol = location.protocol === "https:" ? "wss" : "ws";
+  const socket = new WebSocket(`${protocol}://${location.host}/ws`);
+
+  socket.addEventListener("message", (event) => {
+    const data = JSON.parse(event.data);
+    if (data.status) renderStatus(data.status);
+    const payload = data.payload || {};
+    if (payload.progress) progressEl.textContent = payload.progress;
+    if (payload.screenshot) {
+      screenEl.src = payload.screenshot;
+      screenEl.hidden = false;
+      screenPlaceholder.hidden = true;
+    }
+    if (payload.action) actionEl.textContent = JSON.stringify(payload.action, null, 2);
+    if (data.type === "result") addLog(`${payload.action?.tool || "tool"} -> ${payload.result?.ok ? "ok" : "error"}`);
+    if (data.type === "error") addLog(`Erreur: ${payload.message || payload.error || JSON.stringify(payload)}`);
+    if (data.type === "done") addLog("Objectif termine");
+  });
+
+  socket.addEventListener("close", () => {
+    addLog("WebSocket deconnecte, reconnexion...");
+    setTimeout(connectWebSocket, 1500);
+  });
+}
+
+refreshStatus().catch((error) => addLog(error.message));
+connectWebSocket();

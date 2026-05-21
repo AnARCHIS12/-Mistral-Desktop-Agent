@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_DIR"
+
+APP_NAME="Mistral Desktop Agent"
+
+green="$(printf '\033[32m')"
+yellow="$(printf '\033[33m')"
+red="$(printf '\033[31m')"
+reset="$(printf '\033[0m')"
+
+log() {
+  printf '%s\n' "${green}==>${reset} $*"
+}
+
+warn() {
+  printf '%s\n' "${yellow}Warning:${reset} $*"
+}
+
+fail() {
+  printf '%s\n' "${red}Error:${reset} $*" >&2
+  read -r -p "Appuie sur Entree pour fermer..." _
+  exit 1
+}
+
+pause() {
+  read -r -p "Appuie sur Entree pour continuer..." _
+}
+
+configure_env() {
+  printf '\nConfiguration .env\n'
+  read -r -p "MISTRAL_API_KEY: " mistral_key
+  read -r -p "TELEGRAM_BOT_TOKEN optionnel: " telegram_token
+  read -r -p "Port web [48723]: " port
+  port="${port:-48723}"
+
+  local enable_telegram="false"
+  if [[ -n "$telegram_token" ]]; then
+    enable_telegram="true"
+  fi
+
+  umask 077
+  cat > .env <<EOF
+MISTRAL_API_KEY=$mistral_key
+MISTRAL_MODEL=mistral-large-latest
+TELEGRAM_BOT_TOKEN=$telegram_token
+ENABLE_TELEGRAM=$enable_telegram
+HOST=0.0.0.0
+PORT=$port
+DATABASE_PATH=data/agent_memory.sqlite3
+SCREENSHOT_PATH=data/latest_screenshot.png
+FILE_ACCESS_MODE=full
+ALLOWED_FILE_ROOTS=
+TERMINAL_WORKDIR=$HOME
+MAX_STEPS=50
+MAX_RETRIES=3
+LOOP_DELAY_SECONDS=1.0
+MAX_REPEATED_ACTIONS=3
+TERMINAL_TIMEOUT_SECONDS=30
+BROWSER_HEADLESS=false
+EOF
+  log ".env configure"
+}
+
+install_or_update() {
+  log "Installation ou mise a jour"
+  bash install.sh --no-env
+  if [[ ! -f .env ]]; then
+    configure_env
+  fi
+}
+
+get_port() {
+  if [[ -f .env ]]; then
+    grep -E '^PORT=' .env | tail -n 1 | cut -d= -f2- || true
+  fi
+}
+
+open_browser_later() {
+  local port="${1:-48723}"
+  (
+    sleep 3
+    if command -v xdg-open >/dev/null 2>&1; then
+      xdg-open "http://127.0.0.1:$port" >/dev/null 2>&1 || true
+    elif command -v gio >/dev/null 2>&1; then
+      gio open "http://127.0.0.1:$port" >/dev/null 2>&1 || true
+    fi
+  ) &
+}
+
+launch_app() {
+  if [[ ! -x .venv/bin/python ]]; then
+    warn "Venv absent. Installation maintenant."
+    install_or_update
+  fi
+  if [[ ! -f .env ]]; then
+    configure_env
+  fi
+
+  local port
+  port="$(get_port)"
+  port="${port:-48723}"
+
+  log "Lancement sur http://127.0.0.1:$port"
+  open_browser_later "$port"
+  .venv/bin/python main.py
+}
+
+menu() {
+  while true; do
+    clear || true
+    printf '%s\n' "=========================================="
+    printf '%s\n' "  $APP_NAME"
+    printf '%s\n' "=========================================="
+    printf '\n'
+    printf '%s\n' "1. Installer ou mettre a jour"
+    printf '%s\n' "2. Configurer les cles API"
+    printf '%s\n' "3. Lancer l'application"
+    printf '%s\n' "4. Creer le raccourci bureau/menu"
+    printf '%s\n' "5. Quitter"
+    printf '\n'
+    read -r -p "Choix: " choice
+    case "$choice" in
+      1) install_or_update; pause ;;
+      2) configure_env; pause ;;
+      3) launch_app; pause ;;
+      4) bash create_desktop_launcher.sh; pause ;;
+      5) exit 0 ;;
+      *) ;;
+    esac
+  done
+}
+
+menu
