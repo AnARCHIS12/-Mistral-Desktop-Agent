@@ -137,11 +137,22 @@ Cree un fichier `.env`:
 ```env
 MISTRAL_API_KEY=ton_api_key
 MISTRAL_MODEL=mistral-large-latest
+MISTRAL_MIN_SECONDS_BETWEEN_CALLS=20
+MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=60
 TELEGRAM_BOT_TOKEN=ton_token_telegram
 ENABLE_TELEGRAM=true
 ```
 
 `TELEGRAM_BOT_TOKEN` est optionnel. Sans token, le serveur web et l'API fonctionnent normalement.
+
+Si Mistral retourne `429 Too Many Requests`, augmente le delai:
+
+```env
+MISTRAL_MIN_SECONDS_BETWEEN_CALLS=30
+MISTRAL_RATE_LIMIT_BACKOFF_SECONDS=90
+```
+
+La boucle observe deja l'ecran et l'OCR a chaque etape. Le planner Mistral ne recoit donc plus `screenshot` et `ocr` comme outils a appeler, ce qui reduit les appels inutiles.
 
 ## Lancement
 

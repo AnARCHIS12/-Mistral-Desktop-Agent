@@ -22,6 +22,8 @@ Regles:
 - Ne propose jamais de commande destructive.
 - Ne retourne aucun markdown, aucun commentaire hors JSON.
 - Choisis des actions petites, observables et reversibles.
+- Pour "ouvre Firefox et cherche X", prefere une seule action search({"query": "X"}) ou open_url vers une recherche, puis termine.
+- N'utilise pas wmctrl, xdotool ou des commandes de focus fenetre sauf si l'objectif le demande explicitement.
 """.strip()
 
 

@@ -40,20 +40,24 @@ class AgentLoop:
 
     async def set_goal(self, goal: str) -> None:
         self.goal = goal.strip()
+        self.current_action = None
+        self._history = []
         self.memory.add_log("goal", self.goal)
         await self._publish("goal", {"goal": self.goal})
 
-    async def start(self) -> None:
+    async def start(self) -> dict[str, Any]:
         if self.running:
-            return
+            return {"ok": True, "message": "Agent deja en cours", **self.status()}
         if not self.goal:
+            self.progress = "idle"
             await self._publish("error", {"message": "Aucun objectif defini"})
-            return
+            return {"ok": False, "message": "Aucun objectif defini", **self.status()}
         self.running = True
         self.progress = "starting"
         self._stop_event.clear()
         self._task = asyncio.create_task(self._run(), name="agent-loop")
         await self._publish("status", self.status())
+        return {"ok": True, "message": "Agent demarre", **self.status()}
 
     async def stop(self) -> None:
         self._stop_event.set()
@@ -162,6 +166,12 @@ class AgentLoop:
                 self._history.append({"action": action, "result": result})
                 await self._publish("result", {"action": action, "result": result, "progress": self.progress})
 
+                if self._result_satisfies_goal(action, result):
+                    self.progress = "done"
+                    self.memory.add_step(self.goal, "completed", "Objectif satisfait par l'action executee.")
+                    await self._publish("done", {"action": action, "result": result, "progress": self.progress})
+                    break
+
                 if not result.get("ok"):
                     key = f"{action.get('tool')}:{result.get('error')}"
                     retries[key] += 1
@@ -191,3 +201,17 @@ class AgentLoop:
     def _action_key(action: dict[str, Any]) -> str:
         raw = f"{action.get('tool')}:{action.get('parameters')}"
         return base64.b64encode(raw.encode("utf-8")).decode("ascii")
+
+    def _result_satisfies_goal(self, action: dict[str, Any], result: dict[str, Any]) -> bool:
+        if not result.get("ok"):
+            return False
+        goal = self.goal.lower()
+        tool = str(action.get("tool", ""))
+        if tool == "search" and any(token in goal for token in ("cherche", "recherche", "search", "google")):
+            return True
+        if tool == "open_url":
+            url = str((result.get("result") or {}).get("url", "")).lower()
+            return any(token in goal for token in ("cherche", "recherche", "search", "google")) and (
+                "search" in url or "?q=" in url or "&q=" in url
+            )
+        return False

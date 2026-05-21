@@ -47,21 +47,44 @@ function renderStatus(status) {
 goalBtn.addEventListener("click", async () => {
   const goal = goalInput.value.trim();
   if (!goal) return;
-  await post("/goal", { goal });
-  addLog(`Objectif defini: ${goal}`);
-  await refreshStatus();
+  try {
+    await post("/goal", { goal });
+    addLog(`Objectif defini: ${goal}`);
+    await refreshStatus();
+  } catch (error) {
+    addLog(`Erreur: ${error.message}`);
+  }
 });
 
 startBtn.addEventListener("click", async () => {
-  await post("/start");
-  addLog("Agent demarre");
-  await refreshStatus();
+  const goal = goalInput.value.trim();
+  try {
+    if (goal) {
+      await post("/goal", { goal });
+      addLog(`Objectif defini: ${goal}`);
+    }
+    const status = await post("/start");
+    renderStatus(status);
+    if (status.running) {
+      addLog("Agent demarre");
+    } else if (!status.goal && !goal) {
+      addLog("Erreur: definis un objectif avant de demarrer");
+    } else {
+      addLog(`Agent non demarre: ${status.progress || "verifie les logs"}`);
+    }
+  } catch (error) {
+    addLog(`Erreur: ${error.message}`);
+  }
 });
 
 stopBtn.addEventListener("click", async () => {
-  await post("/stop");
-  addLog("Agent arrete");
-  await refreshStatus();
+  try {
+    await post("/stop");
+    addLog("Agent arrete");
+    await refreshStatus();
+  } catch (error) {
+    addLog(`Erreur: ${error.message}`);
+  }
 });
 
 function connectWebSocket() {

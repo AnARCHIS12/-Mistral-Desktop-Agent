@@ -23,8 +23,7 @@ async def set_goal(payload: GoalRequest, request: Request) -> dict:
 @router.post("/start")
 async def start_agent(request: Request) -> dict:
     agent = request.app.state.agent
-    await agent.start()
-    return agent.status()
+    return await agent.start()
 
 
 @router.post("/stop")
