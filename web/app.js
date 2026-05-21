@@ -18,7 +18,7 @@ const refreshBtn = document.querySelector("#refreshBtn");
 function addLog(message) {
   const row = document.createElement("div");
   row.className = "log";
-  row.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  row.textContent = `[${new Date().toLocaleTimeString()}] ${repairText(message)}`;
   logsEl.prepend(row);
 }
 
@@ -64,7 +64,7 @@ function renderStatus(status) {
     goalInput.value = status.goal;
   }
   if (status.current_action) {
-    actionEl.textContent = JSON.stringify(status.current_action, null, 2);
+    actionEl.textContent = JSON.stringify(repairText(status.current_action), null, 2);
   }
   if (status.mission) renderMission(status.mission);
   if (status.monitoring) renderMonitoring(status.monitoring);
@@ -78,7 +78,7 @@ function renderMission(mission) {
   }
   missionEl.innerHTML = "";
   const summary = document.createElement("div");
-  summary.textContent = `${mission.status} - ${mission.completed || 0}/${mission.total || subtasks.length}`;
+  summary.textContent = repairText(`${mission.status} - ${mission.completed || 0}/${mission.total || subtasks.length}`);
   missionEl.appendChild(summary);
   for (const subtask of subtasks) {
     const row = document.createElement("div");
@@ -86,7 +86,7 @@ function renderMission(mission) {
     const status = document.createElement("strong");
     status.textContent = subtask.status;
     row.appendChild(status);
-    row.append(` - ${subtask.text}`);
+    row.append(` - ${repairText(subtask.text)}`);
     missionEl.appendChild(row);
   }
 }
@@ -95,9 +95,9 @@ function renderMonitoring(monitoring) {
   const plannerUsage = monitoring.planner?.usage || {};
   const visionUsage = monitoring.vision_model?.usage || {};
   const totalTokens = (plannerUsage.total_tokens || 0) + (visionUsage.total_tokens || 0);
-  const next = monitoring.next_subtask?.text || "Aucune";
-  const plan = monitoring.next_plan || "En attente";
-  const visionSummary = monitoring.vision_analysis?.summary || monitoring.vision_analysis?.suggested_next_action || "Desactive";
+  const next = repairText(monitoring.next_subtask?.text || "Aucune");
+  const plan = repairText(monitoring.next_plan || "En attente");
+  const visionSummary = repairText(monitoring.vision_analysis?.summary || monitoring.vision_analysis?.suggested_next_action || "Desactive");
   const rows = [
     ["Temps ecoule", formatDuration(monitoring.elapsed_seconds || 0)],
     ["Etape", `${monitoring.current_step || 0}/${monitoring.max_steps || 0}`],
@@ -116,7 +116,7 @@ function renderMonitoring(monitoring) {
     const name = document.createElement("span");
     name.textContent = label;
     const data = document.createElement("strong");
-    data.textContent = value;
+    data.textContent = repairText(value);
     row.append(name, data);
     supervisionEl.appendChild(row);
   }
@@ -152,6 +152,40 @@ function formatDuration(seconds) {
 function trimText(value, size) {
   const text = String(value || "");
   return text.length > size ? `${text.slice(0, size - 1)}...` : text;
+}
+
+function repairText(value) {
+  if (Array.isArray(value)) return value.map((item) => repairText(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, repairText(item)]));
+  }
+  if (typeof value !== "string") return value;
+  const replacements = {
+    "\u000e0": "à",
+    "\u000e2": "â",
+    "\u000e7": "ç",
+    "\u000e8": "è",
+    "\u000e9": "é",
+    "\u000ea": "ê",
+    "\u000eb": "ë",
+    "\u000ee": "î",
+    "\u000ef": "ï",
+    "\u000f4": "ô",
+    "\u000f9": "ù",
+    "\u000fb": "û",
+    "\u000fc": "ü",
+    "\u000c0": "À",
+    "\u000c7": "Ç",
+    "\u000c8": "È",
+    "\u000c9": "É",
+    "\u000ca": "Ê",
+    "\u000d4": "Ô",
+  };
+  let text = value;
+  for (const [broken, fixed] of Object.entries(replacements)) {
+    text = text.replaceAll(broken, fixed);
+  }
+  return text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "");
 }
 
 goalBtn.addEventListener("click", async () => {
@@ -240,7 +274,7 @@ function connectWebSocket() {
       renderScreenshot(payload.screenshot);
     }
     if (payload.screenshot_backend) addLog(`Capture: ${payload.screenshot_backend}`);
-    if (payload.action) actionEl.textContent = JSON.stringify(payload.action, null, 2);
+    if (payload.action) actionEl.textContent = JSON.stringify(repairText(payload.action), null, 2);
     if (payload.mission) renderMission(payload.mission);
     if (payload.monitoring) renderMonitoring(payload.monitoring);
     if (payload.ocr_error) addLog(`OCR: ${payload.ocr_error}`);

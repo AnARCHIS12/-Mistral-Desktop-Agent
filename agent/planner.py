@@ -90,7 +90,7 @@ class MistralPlanner:
         action.setdefault("parameters", {})
         action.setdefault("reason", "")
         action.setdefault("status", "continue")
-        return action
+        return _repair_text(action)
 
     @staticmethod
     def _normalize_tool_call(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -107,8 +107,8 @@ class MistralPlanner:
 
         return {
             "tool": tool_name,
-            "parameters": parameters,
-            "reason": reason,
+            "parameters": _repair_text(parameters),
+            "reason": _repair_text(reason),
             "status": "continue",
         }
 
@@ -136,3 +136,40 @@ class MistralPlanner:
                 self.usage[key] += int(usage.get(key) or 0)
             except (TypeError, ValueError):
                 pass
+
+
+def _repair_text(value: Any) -> Any:
+    if isinstance(value, str):
+        return _repair_latin1_escape_damage(value)
+    if isinstance(value, list):
+        return [_repair_text(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _repair_text(item) for key, item in value.items()}
+    return value
+
+
+def _repair_latin1_escape_damage(text: str) -> str:
+    replacements = {
+        "\x0e0": "à",
+        "\x0e2": "â",
+        "\x0e7": "ç",
+        "\x0e8": "è",
+        "\x0e9": "é",
+        "\x0ea": "ê",
+        "\x0eb": "ë",
+        "\x0ee": "î",
+        "\x0ef": "ï",
+        "\x0f4": "ô",
+        "\x0f9": "ù",
+        "\x0fb": "û",
+        "\x0fc": "ü",
+        "\x0c0": "À",
+        "\x0c7": "Ç",
+        "\x0c8": "È",
+        "\x0c9": "É",
+        "\x0ca": "Ê",
+        "\x0d4": "Ô",
+    }
+    for broken, fixed in replacements.items():
+        text = text.replace(broken, fixed)
+    return "".join(char for char in text if char >= " " or char in "\n\r\t")
