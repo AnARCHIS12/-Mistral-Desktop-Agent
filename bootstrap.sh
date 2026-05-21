@@ -27,10 +27,15 @@ Options:
   --dir <path>           Dossier d'installation (defaut: $INSTALL_DIR)
   --                     Transmettre le reste des options a install.sh
 
+Notes:
+  Le bootstrap lance install.sh, qui installe aussi Tesseract OCR par defaut quand c'est possible.
+  Pour ignorer les paquets systeme: ajoute -- --skip-system-packages
+
 Exemples:
   curl -fsSL https://raw.githubusercontent.com/AnARCHIS12/-Mistral-Desktop-Agent/main/bootstrap.sh | bash
   curl -fsSL https://raw.githubusercontent.com/AnARCHIS12/-Mistral-Desktop-Agent/main/bootstrap.sh | bash -s -- --yes
   curl -fsSL https://raw.githubusercontent.com/AnARCHIS12/-Mistral-Desktop-Agent/main/bootstrap.sh | bash -s -- --dir ~/.local/share/mistral-agent -- --port 8001
+  curl -fsSL https://raw.githubusercontent.com/AnARCHIS12/-Mistral-Desktop-Agent/main/bootstrap.sh | bash -s -- --yes -- --skip-system-packages
 EOF
 }
 
